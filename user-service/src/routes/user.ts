@@ -1,11 +1,21 @@
 // src/routes/user.ts
 import { FastifyPluginAsync } from 'fastify'
+import { prisma } from '../prisma'
 
 const userRoutes: FastifyPluginAsync = async (fastify) => {
     fastify.post('/', async (request, reply) => {
         const { name, email } = request.body as { name: string; email: string }
-        // จะส่ง event ไป Kafka ใน EP3
-        return { id: Date.now(), name, email }
+
+        const user = await prisma.user.create({
+            data: { name, email }
+        })
+
+        return user
+    })
+
+    fastify.get('/', async () => {
+        const users = await prisma.user.findMany()
+        return users
     })
 }
 
