@@ -1,0 +1,15 @@
+{
+    "private": true,
+    "workspaces": [
+        "services/*",
+        "libs/*"
+    ],
+    "scripts": {
+        "dev:user": "npm --workspace services/user-service run dev",
+        "dev:notification": "npm --workspace services/notification-service run dev",
+        "dev:all": "concurrently \"npm run dev:user\" \"npm run dev:notification\""
+    },
+    "devDependencies": {
+        "concurrently": "^8.0.0"
+    }
+}

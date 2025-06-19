@@ -40,3 +40,19 @@ AsyncAPI docs สำหรับ event documentation
 
 GitHub Monorepo Structure แนะนำใช้ NX, TurboRepo หรือแบ่งเป็น 2 repo (BE/FE)
 
+
+
+## Update 
+
+แผน EP6–EP15: Production-grade Backend
+EP	หัวข้อ	สิ่งที่คุณจะได้
+6	Service Health, Logging, Validation	ใช้ pino, fastify-zod, custom healthcheck แบบ readiness/liveness
+7	Error Handling + Retry Strategy (Kafka & HTTP)	สร้าง middleware handler + Kafka DLQ + exponential backoff
+8	Observability	Integrate Prometheus, Grafana, Kafka UI, log labels, metrics
+9	Testable Architecture	ใช้ Jest + mock + in-memory test Prisma & Kafka
+10	Auth Layer & RBAC	JWT Auth, role-permission, route-based policy
+11	AsyncAPI & OpenAPI Docs	สร้างเอกสารสื่อสาร event + REST API แบบมืออาชีพ
+12	Dockerize + Compose Override	Build/Run/Dev per-service, optimize for local dev
+13	CI/CD สำหรับ Monorepo	GitHub Actions, matrix test, tag-based deploy
+14	Resilient Kafka Consumers	Circuit breaker, dead-letter queue, durable offset
+15	Final Integration	Demo ระบบ, คุยเรื่อง DevOps, scaling, fallback strategy
