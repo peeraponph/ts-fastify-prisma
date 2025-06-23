@@ -1,12 +1,18 @@
 import Fastify from 'fastify'
 import userRoutes from './routes/user.route'
-import healthcheckPlugin from './plugins/healtcheck'
 import { producer } from './kafka'
+import logger from './plugins/logger'
 
-const server = Fastify({ logger: true })
+import healthRoute from './routes/health.route'
 
-server.register(healthcheckPlugin)
+const server = Fastify({ logger: true }) // Initialize Fastify server instance (use logger plugin instaead)
+
+// Register plugins
+server.register(logger)
+
+// Register routes
 server.register(userRoutes, { prefix: '/users' })
+server.register(healthRoute)
 
 const start = async () => {
     try {

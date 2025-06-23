@@ -1,7 +1,6 @@
-// src/plugins/healthcheck.ts
-import { FastifyPluginAsync } from 'fastify'
+import { FastifyInstance } from 'fastify'
 
-const healthcheckPlugin: FastifyPluginAsync = async (fastify) => {
+export default async function healthRoute(fastify: FastifyInstance) {
     fastify.get('/health', async () => {
         return { status: 'ok' }
     })
@@ -13,7 +12,5 @@ const healthcheckPlugin: FastifyPluginAsync = async (fastify) => {
 
     fastify.get('/liveness', async () => {
         return { status: 'alive' }
-      })
+    })
 }
-
-export default healthcheckPlugin
