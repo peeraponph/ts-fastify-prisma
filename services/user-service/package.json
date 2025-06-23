@@ -14,10 +14,12 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@prisma/client": "^6.10.0",
+    "@prisma/client": "^6.10.1",
+    "bcryptjs": "^3.0.2",
     "fastify": "^4.29.1",
     "fastify-plugin": "^5.0.1",
     "fastify-zod": "^1.4.0",
+    "jsonwebtoken": "^9.0.2",
     "kafkajs": "^2.2.4",
     "pg": "^8.16.0",
     "pino": "^9.7.0",
@@ -25,6 +27,7 @@
     "zod": "^3.25.67"
   },
   "devDependencies": {
+    "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^24.0.3",
     "prisma": "^6.10.0",
     "ts-node": "^10.9.2",

@@ -1,6 +1,11 @@
+//  services/user-service/src/domain/user.entity.ts
+import { Role } from '../generated/prisma'
+
 export interface User {
     id: number
-    name: string
     email: string
-    createdAt: Date
-}  
+    password: string
+    name: string
+    group: string
+    role: Role
+}

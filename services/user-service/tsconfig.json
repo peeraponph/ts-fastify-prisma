@@ -2,7 +2,8 @@
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     "rootDir": "src",
-    "outDir": "dist"
+    "outDir": "dist",
+    "typeRoots": ["./src/types", "./node_modules/@types"]
   },
-  "include": ["src"]
+  "include": ["src", "src/types", "prisma/generated/client"],
 }

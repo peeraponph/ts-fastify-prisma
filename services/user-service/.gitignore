@@ -4,7 +4,7 @@ dist/
 package-lock.json
 
 
-/src/generated/prisma
+/src/generated/*
 /src/prisma/migrations*
 
-/src/generated/prisma
+/generated/*
