@@ -1,9 +1,7 @@
-# TS Microservices – User & Notification Service
-
-This monorepo contains two TypeScript-based microservices:
+## Monorepo contains two TypeScript-based microservices:
 
 - `user-service`: Handles user management (CRUD, auth, roles)
-- `noti-service`: Sends notifications via email, LINE, or other channels
+- `noti-service`: Sends notifications via email, LINE, or other channels 
 
 Built with Fastify, Prisma, PostgreSQL, and Docker Compose.
 
