@@ -5,7 +5,7 @@
   "main": "src/consumer.ts",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "npx ts-node src/consumer.ts"
+    "dev": "npx ts-node server.ts"
   },
   "dependencies": {
     "fastify-plugin": "^5.0.1",
