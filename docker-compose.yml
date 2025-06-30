@@ -32,10 +32,45 @@ services:
     depends_on:
       - kafka
 
+  tempo:
+    image: grafana/tempo
+    ports:
+      - "4318:4318"
+      - "3200:3200"  
+    command: [ "-config.file=/etc/tempo.yaml" ]
+    volumes:
+      - ./tempo/tempo.yaml:/etc/tempo.yaml
+
+  tempo-gateway:
+    image: otel/opentelemetry-collector-contrib:latest
+    command: [ "--config=/etc/otel-collector-config.yaml" ]
+    volumes:
+      - ./tempo/otel-collector-config.yaml:/etc/otel-collector-config.yaml
+    ports:
+      - "14318:4318"
+
+  jaeger:
+    image: jaegertracing/all-in-one
+    ports:
+      - "16686:16686" # UI
+      - "14268:14268"
+
   redis:
     image: redis:7
     ports:
       - "6379:6379"
+
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    volumes:
+      - grafana-storage:/var/lib/grafana
+    depends_on:
+      - tempo
 
   postgres:
     image: postgres:16
@@ -62,3 +97,4 @@ services:
 
 volumes:
   pgdata:
+  grafana-storage:

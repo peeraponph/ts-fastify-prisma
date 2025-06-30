@@ -1,6 +1,11 @@
 import { FastifyInstance } from 'fastify'
-import { createUserHandler, getUserListHandler } from '../handlers/user.handler'
-import { authorizeRoles } from '../../infrastructure/auth/rbac.middleware'
+import { 
+    getUserHandler, 
+    createUserHandler, 
+    getUserListHandler 
+} from '../handlers/user.handler'
+// import { authorizeRoles } from '../../infrastructure/auth/rbac.middleware'
+
 
 export default async function userRoutes(server: FastifyInstance) {
     // server.get('/',
@@ -11,6 +16,7 @@ export default async function userRoutes(server: FastifyInstance) {
     // )
 
     server.get('/', getUserListHandler)
+    server.get('/:id', getUserHandler)
     server.post('/', createUserHandler)
 
 }

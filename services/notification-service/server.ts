@@ -1,8 +1,9 @@
 import { startUserEventConsumer } from './src/application/consumers/user.consumer'
+import { startLogConsumer } from './src/application/consumers/log.consumer'
 
 async function start() {
     await startUserEventConsumer()
-    console.log('✅ noti-service Kafka consumer started')
+    await startLogConsumer()
 }
 
 start()

@@ -9,7 +9,12 @@ export const userRepository: UserRepository = {
     },
 
     async findByEmail(email: string): Promise<PrismaUser | null> {
-        return prisma.user.findUnique({ where: { email } })
+        const cached = await redis.get(`user:email:${email}`)
+        if (cached) return JSON.parse(cached)
+
+        const user = await prisma.user.findUnique({ where: { email } })
+        if (user) await redis.set(`user:email:${email}`, JSON.stringify(user), 'EX', 60)
+        return user
     },
 
     async findById(id: number): Promise<PrismaUser | null> {
@@ -27,9 +32,13 @@ export const userRepository: UserRepository = {
         return updated
     },
 
-    async delete(id: number): Promise<void> {
+    async delete(id: number): Promise<PrismaUser> {
+        const user =  await prisma.user.findUnique({ where: { id } })
+        if (!user) throw new Error('User not found')
+            
         await prisma.user.delete({ where: { id } })
         await redis.del(`user:${id}`)
+        return user
     },
 
     async listUsers(): Promise<PrismaUser[]> {

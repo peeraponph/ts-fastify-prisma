@@ -8,5 +8,5 @@ export interface UserRepository {
     findByEmail(email: string): Promise<PrismaUser | null>
     listUsers(): Promise<PrismaUser[]>
     update(id: number, data: Prisma.UserUpdateInput): Promise<PrismaUser>
-    delete(id: number): Promise<void>
+    delete(id: number): Promise<PrismaUser>
 }

@@ -4,3 +4,7 @@ export enum KafkaTopic {
     USER_UPDATED = 'user.updated',
     USER_DELETED = 'user.deleted',
 }
+
+export enum KafkaUserLogTopic {
+    USER_LOG = 'user.log',
+}   

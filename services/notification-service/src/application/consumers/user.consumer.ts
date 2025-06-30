@@ -27,4 +27,5 @@ export async function startUserEventConsumer() {
             }
         },
     })
+    console.log('✅ User event consumer started')
 }
