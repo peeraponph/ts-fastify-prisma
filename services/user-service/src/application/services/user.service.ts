@@ -75,7 +75,7 @@ export class UserService {
 
     await this.logProducer.sendUserLogEvent({
       eventType: 'user.log.deleted',
-      actor: deleteUser.email || 'system', // คุณสามารถใช้ req.user.email แทน หากมี context
+      actor: deleteUser.email || 'system', 
       targetUser: deleteUser,
       timestamp: GetTimestampNow()
     })
