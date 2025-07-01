@@ -8,7 +8,7 @@ import { Consumer } from 'kafkajs'
 const prisma = new PrismaClient()
 
 export async function startLogConsumer() {
-    const consumer: Consumer = kafka.consumer({ groupId: 'user-log-consumer' }) 
+    const consumer: Consumer = kafka.consumer({ groupId: 'notification-log-consumer' }) 
     await consumer.connect()
     await consumer.subscribe({ topic: KafkaUserLogTopic.USER_LOG, fromBeginning: true })
 

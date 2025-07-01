@@ -3,8 +3,8 @@ import { kafka } from '../../infrastructure/kafka/kafka'
 import { KafkaUserTopic } from '../../infrastructure/kafka/topic'
 
 export async function startUserEventConsumer() {
-    const consumer = kafka.consumer({ groupId: 'user-event-consumer' })
-    
+    const consumer = kafka.consumer({ groupId: 'notification-user-consumer' })
+
     await consumer.connect()
 
     await consumer.subscribe({ topic: KafkaUserTopic.USER_CREATED, fromBeginning: true })
