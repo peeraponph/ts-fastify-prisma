@@ -62,7 +62,7 @@ export class UserService {
 
     await this.logProducer.sendUserLogEvent({
       eventType: 'user.log.updated',
-      actor: user.email || 'system', // คุณสามารถใช้ req.user.email แทน หากมี context
+      actor: user.email || 'system', 
       targetUser: updateUser,
       changes: getDiff(before, updateUser),
       timestamp: GetTimestampNow()

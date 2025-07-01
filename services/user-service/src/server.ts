@@ -21,7 +21,7 @@ const start = async () => {
     try {
         await connectProducer() // Connect Kafka producer
         await startTelemetry()  // Start OpenTelemetry
-        await server.listen({ port: 3000, host: '0.0.0.0' })
+        await server.listen({ port: 5000, host: '0.0.0.0' })
     } catch (err) {
         server.log.error(err)
         process.exit(1)

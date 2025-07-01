@@ -1,30 +1,68 @@
-import { Consumer, EachMessagePayload } from 'kafkajs'
-import { consumer } from '../../infrastructure/kafka/kafka'     
+// services/notification-service/src/application/consumers/log.consumer.ts
+import { kafka } from '../../infrastructure/kafka/kafka'
 import { KafkaUserLogTopic } from '../../infrastructure/kafka/topic'
-import { prisma } from '../../infrastructure/prisma/prisma'
+import { UserLogEvent } from '../port/log.consumer'
+import { PrismaClient } from '../../generated/prisma'
+import { Consumer } from 'kafkajs'
 
-export const startLogConsumer = async () => {
+const prisma = new PrismaClient()
+
+export async function startLogConsumer() {
+    const consumer: Consumer = kafka.consumer({ groupId: 'noti-group' })
     await consumer.connect()
-    await consumer.subscribe({ topic: KafkaUserLogTopic.USER_LOG, fromBeginning: false })
+    await consumer.subscribe({ topic: KafkaUserLogTopic.USER_LOG, fromBeginning: true })
+
+    console.log('✅ Log event consumer started')
 
     await consumer.run({
-        eachMessage: async ({ topic, message }: EachMessagePayload) => {
+        eachMessage: async ({ topic, partition, message }) => {
             if (!message.value) return
-            const logEvent = JSON.parse(message.value.toString())
 
-            console.log('📥 Received log event:', logEvent.eventType)
+            try {
+                const data: UserLogEvent = JSON.parse(message.value.toString())
 
-            await prisma.userLog.create({
-                data: {
-                    eventType: logEvent.eventType,
-                    actor: logEvent.actor,
-                    targetUser: logEvent.targetUser,
-                    changes: logEvent.changes || null,
-                    timestamp: logEvent.timestamp,
-                },
-            })
+                switch (data.eventType) {
+                    case 'user.log.created':
+                        await prisma.userLog.create({
+                            data: {
+                                eventType: data.eventType,
+                                actor: data.actor,
+                                targetUser: data.targetUser,
+                                changes: data.changes || undefined,
+                                timestamp: data.timestamp,
+                            },
+                        })
+                        break
+                    case 'user.log.updated':
+                        await prisma.userLog.create({
+                            data: {
+                                eventType: data.eventType,
+                                actor: data.actor,
+                                targetUser: data.targetUser,
+                                changes: data.changes || undefined,
+                                timestamp: data.timestamp,
+                            },
+                        })
+                        break
+                    case 'user.log.deleted':
+                        await prisma.userLog.create({
+                            data: {
+                                eventType: data.eventType,
+                                actor: data.actor,
+                                targetUser: data.targetUser,
+                                changes: data.changes || undefined,
+                                timestamp: data.timestamp,
+                            },
+                        })
+                        break
+                    default:
+                        console.warn(`⚠️ Unknown user log event type: ${data.eventType}`)
+                }
+
+                console.log(`📥 Logged user event: ${data.eventType} by ${data.actor}`)
+            } catch (err) {
+                console.error('❌ Failed to store user log:', err)
+            }
         },
     })
-
-    console.log('✅ Log consumer started')
 }

@@ -1,9 +1,9 @@
 import { FastifyRequest, FastifyReply } from 'fastify'
 import { UserService } from '../../application/services/user.service'
 import { userRepository } from '../../infrastructure/repositories/user.repository.prisma'
-import { UserLogProducerService } from '../../application/events/userlog.producer'
+import { UserLogProducerService } from '../../application/events/log.producer'
 
-const logProducer = new UserLogProducerService() 
+const logProducer = new UserLogProducerService()
 const service = new UserService(userRepository, logProducer)
 
 export const getUserListHandler = async (_req: FastifyRequest, reply: FastifyReply) => {

@@ -1,7 +1,7 @@
 //  src/services/user-service/src/application/events/userlog.producer.ts
 
 import { producer } from '../../infrastructure/kafka/kafka'
-import { LogProducerPort, UserLogEvent } from '../../application/ports/log.producer'
+import { LogProducerPort, UserLogEvent } from '../ports/log.producer'
 import { KafkaUserLogTopic } from '../../infrastructure/kafka/topic'
 
 

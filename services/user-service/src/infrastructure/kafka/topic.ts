@@ -1,4 +1,4 @@
-// src/infrastructure/kafka/topics.ts
+// services/user-service/src/infrastructure/kafka/topic.ts
 export enum KafkaUserTopic {
     USER_CREATED = 'user.created',
     USER_UPDATED = 'user.updated',

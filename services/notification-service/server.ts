@@ -1,9 +1,8 @@
-import { startUserEventConsumer } from './src/application/consumers/user.consumer'
-import { startLogConsumer } from './src/application/consumers/log.consumer'
+import { startKafkaConsumers } from './src/infrastructure/kafka/consumer'
+
 
 async function start() {
-    await startUserEventConsumer()
-    await startLogConsumer()
+    await startKafkaConsumers()
 }
 
 start()
