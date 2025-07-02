@@ -3,7 +3,8 @@
   "compilerOptions": {
     "rootDir": "src",
     "outDir": "dist",
-    "typeRoots": ["./src/types", "./node_modules/@types"]
+    "types": ["jest"],
+    "typeRoots": ["./node_modules/@types", "./src/types"]
   },
-  "include": ["src", "src/types", "prisma/generated/client"],
+  "include": ["src", "src/__tests__", "src/types", "prisma/generated/client"],
 }

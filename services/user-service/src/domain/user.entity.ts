@@ -8,4 +8,5 @@ export interface User {
     name: string
     group: string
     role: Role
+    createdAt: Date
 }
