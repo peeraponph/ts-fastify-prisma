@@ -1,3 +1,4 @@
+// service/user-service/src/presentation/handlers/user.handler.ts
 import { FastifyRequest, FastifyReply } from 'fastify'
 import { UserService } from '../../application/services/user.service'
 import { userRepository } from '../../infrastructure/repositories/user.repository.prisma'
@@ -22,3 +23,10 @@ export const createUserHandler = async (req: FastifyRequest, reply: FastifyReply
     const user = await service.createUser(body)
     return reply.code(201).send(user)
 }
+
+// export const updateUserHandler = async (req: FastifyRequest, reply: FastifyReply) => {
+//     const id = Number(req.params.id)
+//     const body = req.body as any
+//     const updatedUser = await service.updateUser(id, body)
+//     return reply.send(updatedUser)
+// }
