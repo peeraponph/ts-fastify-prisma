@@ -2,29 +2,50 @@
 import './infrastructure/tracing/opentelemetry'
 import Fastify from 'fastify'
 import userRoutes from './presentation/routes/user.route'
+import authRoutes from './presentation/routes/auth.route'
 import healthRoute from './presentation/routes/health.route'
-import logger from './presentation/plugins/logger'
 import authPlugin from './infrastructure/auth/auth.plugin'
 import { connectProducer } from './infrastructure/kafka/kafka'
 import { startTelemetry } from './infrastructure/tracing/opentelemetry'
 import fastifySwagger from '@fastify/swagger'
 import fastifySwaggerUi from '@fastify/swagger-ui'
 
-const server = Fastify({ logger: true })
+const server = Fastify({
+    logger: {
+        transport: {
+            target: 'pino-pretty',
+            options: {
+                colorize: true,
+                translateTime: 'HH:MM:ss dd-mm-yyyy',
+                ignore: 'pid,hostname'
+            }
+        }
+    },
+    forceCloseConnections: true, 
+    connectionTimeout: 1000, 
+})
 
-// Register routes
-async function registerRoutes() {
-    await server.register(userRoutes, { prefix: '/users' })
-    await server.register(healthRoute)
-}
+// Global error handler
+server.setErrorHandler(async (error, request, reply) => {
+    request.log.error(error)
 
-// Register all plugins with type assertion
-async function setupPlugins() {
-    await server.register(logger)
-    await server.register(authPlugin)
-}
+    if (error.validation) {
+        return reply.status(400).send({
+            statusCode: 400,
+            error: 'Bad Request',
+            message: 'Validation failed',
+            details: error.validation
+        })
+    }
 
-// Register Swagger documentation
+    return reply.status(500).send({
+        statusCode: 500,
+        error: 'Internal Server Error',
+        message: 'An unexpected error occurred'
+    })
+})
+
+// Setup Swagger
 async function setupSwagger() {
     await server.register(fastifySwagger, {
         swagger: {
@@ -33,11 +54,23 @@ async function setupSwagger() {
                 description: 'API documentation for managing users',
                 version: '1.0.0',
             },
-            tags: [{ name: 'User', description: 'User management endpoints' }],
             host: 'localhost:5000',
-            schemes: ['http'],
+            schemes: ['http', 'https'],
             consumes: ['application/json'],
             produces: ['application/json'],
+            tags: [
+                { name: 'User', description: 'User management endpoints' },
+                { name: 'Health', description: 'Health check endpoints' }
+            ],
+            securityDefinitions: {
+                Bearer: {
+                    type: 'apiKey',
+                    name: 'Authorization',
+                    in: 'header',
+                    description: 'JWT token for authentication'
+                }
+            },
+            security: [{ Bearer: [] }]
         }
     })
 
@@ -56,19 +89,42 @@ async function setupSwagger() {
     })
 }
 
+// Register plugins and routes
+async function setupServer() {
+    // Register auth plugin first
+    await server.register(authPlugin)
+
+    // Register Swagger
+    await setupSwagger()
+
+    // Register routes
+    await server.register(userRoutes, { prefix: '/api/v1/users' })
+    await server.register(authRoutes, { prefix: '/auth' })
+    await server.register(healthRoute, { prefix: '/api/v1' })
+}
+
+// Graceful Shutdown แบบเร็ว (สำหรับ Dev)
+async function fastShutdown() {
+    console.log('\n⚠️  Force shutting down...')
+    await server.close().catch(() => { }) // ปิด Fastify แบบไม่ต้องรอ
+    process.exit(0) // ออกทันที
+}
+
+// ใช้ `SIGINT` (Ctrl+C) และ `SIGTERM` เพื่อปิดเร็ว
+process.on('SIGINT', fastShutdown)
+process.on('SIGTERM', fastShutdown)
+
 async function startServer() {
     try {
         await connectProducer()
         await startTelemetry()
-        await setupPlugins()
-        await setupSwagger()
-        await registerRoutes()
+        await setupServer()
 
         await server.ready()
         await server.listen({ port: 5000, host: '0.0.0.0' })
 
-        server.log.info('User-service running at http://localhost:5000')
-        server.log.info('Swagger docs available at http://localhost:5000/docs')
+        server.log.info('🚀 User Service running at http://localhost:5000')
+        server.log.info('📚 Swagger docs available at http://localhost:5000/docs')
     } catch (err) {
         server.log.error(err)
         process.exit(1)

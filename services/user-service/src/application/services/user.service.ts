@@ -1,83 +1,113 @@
 // services/user-service/src/application/services/user.service.ts
-
-import { UserRepository } from '../ports/user.repository'
+import { UserRepository, ListUsersOptions, PaginatedResult } from '../ports/user.repository'
+import { LogProducerPort } from '../ports/log.producer'
 import { hashPassword } from '../../shared/utils/password'
 import { User } from '../../domain/user.entity'
-import { 
+import {
   publishUserCreated,
-  publishUserDeleted, 
-  publishUserUpdated 
+  publishUserDeleted,
+  publishUserUpdated
 } from '../events/user.producer'
 import { GetTimestampNow } from '../../shared/utils/time'
-import { LogProducerPort } from '../ports/log.producer'
 import { getDiff } from '../../shared/utils/getdiff'
+import { CreateUserInput, UpdateUserInput } from '../../types/user.types'
 
 export class UserService {
   constructor(
-    private repo: UserRepository,
-    private logProducer: LogProducerPort
+    private readonly userRepository: UserRepository,
+    private readonly logProducer: LogProducerPort
   ) { }
 
-  async createUser(user: Partial<User>): Promise<User> {
-    if (!user.name || !user.email || !user.role || !user.group || !user.password) {
-      throw new Error('Missing required user fields')
+  async createUser(userData: CreateUserInput): Promise<User> {
+    // Check if user already exists
+    const existingUser = await this.userRepository.findByEmail(userData.email)
+    if (existingUser) {
+      throw new Error('User with this email already exists')
     }
 
-    const hashed = await hashPassword(user.password)
+    const hashedPassword = await hashPassword(userData.password)
 
     const data = {
-      name: user.name,
-      email: user.email,
-      role: user.role,
-      group: user.group,
-      password: hashed,
+      ...userData,
+      password: hashedPassword,
     }
 
-    const createdUser = await this.repo.createUser(data)
-    await publishUserCreated(createdUser)
+    const createdUser = await this.userRepository.createUser(data)
 
-    await this.logProducer.sendUserLogEvent({
-      eventType: 'user.log.created',
-      actor: user.email || 'system', // คุณสามารถใช้ req.user.email แทน หากมี context
-      targetUser: createdUser,
-      timestamp: GetTimestampNow()
-    })
+    // Publish events
+    await Promise.all([
+      publishUserCreated(createdUser),
+      this.logProducer.sendUserLogEvent({
+        eventType: 'user.log.created',
+        actor: 'system',
+        targetUser: createdUser,
+        timestamp: GetTimestampNow()
+      })
+    ])
 
     return createdUser
   }
-  async listUsers() {
-    return this.repo.listUsers()
+
+  async listUsers(options: ListUsersOptions = {}): Promise<PaginatedResult<User>> {
+    return await this.userRepository.listUsers(options)
   }
 
-  async getUser(id: number) {
-    return this.repo.findById(id)
+  async getUser(id: number): Promise<User | null> {
+    return this.userRepository.findById(id)
   }
 
-  async updateUser(id: number, user: Partial<User>) {
-    const before = await this.repo.findById(id) 
-    if (!before) throw new Error('User not found')
-      
-    const updateUser = await this.repo.update(id, user)
-    await publishUserUpdated(updateUser)
-
-    await this.logProducer.sendUserLogEvent({
-      eventType: 'user.log.updated',
-      actor: user.email || 'system', 
-      targetUser: updateUser,
-      changes: getDiff(before, updateUser),
-      timestamp: GetTimestampNow()
-    })
+  async getUserByEmail(email: string) {
+    return this.userRepository.findByEmail(email)
   }
 
-  async deleteUser(id: number) {
-    const deleteUser=  await this.repo.delete(id)
-    await publishUserDeleted(id)
+  async updateUser(id: number, userData: UpdateUserInput): Promise<User> {
+    const existingUser = await this.userRepository.findById(id)
+    if (!existingUser) {
+      throw new Error('User not found')
+    }
 
-    await this.logProducer.sendUserLogEvent({
-      eventType: 'user.log.deleted',
-      actor: deleteUser.email || 'system', 
-      targetUser: deleteUser,
-      timestamp: GetTimestampNow()
-    })
+    // Check email uniqueness if email is being updated
+    if (userData.email && userData.email !== existingUser.email) {
+      const userWithEmail = await this.userRepository.findByEmail(userData.email)
+      if (userWithEmail && userWithEmail.id !== id) {
+        throw new Error('Email already in use by another user')
+      }
+    }
+
+    const updatedUser = await this.userRepository.update(id, userData)
+
+    // Publish events
+    await Promise.all([
+      publishUserUpdated(updatedUser),
+      this.logProducer.sendUserLogEvent({
+        eventType: 'user.log.updated',
+        actor: 'system',
+        targetUser: updatedUser,
+        changes: getDiff(existingUser, updatedUser),
+        timestamp: GetTimestampNow()
+      })
+    ])
+
+    return updatedUser
+  }
+
+  async deleteUser(id: number): Promise<void> {
+    const existingUser = await this.userRepository.findById(id)
+    if (!existingUser) {
+      throw new Error('User not found')
+    }
+
+    await this.userRepository.delete(id)
+
+    // Publish events
+    await Promise.all([
+      publishUserDeleted(id),
+      this.logProducer.sendUserLogEvent({
+        eventType: 'user.log.deleted',
+        actor: 'system',
+        targetUser: existingUser,
+        timestamp: GetTimestampNow()
+      })
+    ])
   }
 }

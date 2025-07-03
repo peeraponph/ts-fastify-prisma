@@ -3,10 +3,19 @@ import { Role } from '../generated/prisma'
 
 export interface User {
     id: number
+    name: string
     email: string
     password: string
-    name: string
-    group: string
     role: Role
+    group: string
+    createdAt: Date
+}
+
+export interface UserWithoutPassword {
+    id: number
+    name: string
+    email: string
+    role: Role
+    group: string
     createdAt: Date
 }

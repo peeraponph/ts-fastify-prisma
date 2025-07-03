@@ -1,97 +1,128 @@
-//  service/user-service/src/presentation/routes/user.route.ts
-import { FastifyInstance } from 'fastify'
-import { createUserHandler, getUserHandler, getUserListHandler } from '../handlers/user.handler'
-// import { z } from 'zod'
+// services/user-service/src/presentation/routes/user.route.ts
+import { FastifyInstance, FastifyPluginOptions } from 'fastify'
+import {
+    getUserListHandler,
+    getUserHandler,
+    createUserHandler,
+    updateUserHandler,
+    deleteUserHandler
+} from '../handlers/user.handler'
+import {
+    CreateUserSchemaJson,
+    UpdateUserSchemaJson,
+    UserResponseSchema
+} from '../../types/user.types'
 
-// const CreateUserSchema = z.object({
-//     name: z.string(),
-//     email: z.string().email(),
-//     password: z.string().min(6),
-//     role: z.enum(['USER', 'ADMIN']),
-//     group: z.string()
-// })
-
-const CreateUserSchemaJson = {
-    type: 'object',
-    required: ['name', 'email', 'password', 'role', 'group'],
-    properties: {
-        name: { type: 'string' },
-        email: { type: 'string', format: 'email' },
-        password: { type: 'string', minLength: 6 },
-        role: { type: 'string', enum: ['USER', 'ADMIN'] },
-        group: { type: 'string' }
-    }
-}
-
-export default async function userRoutes(server: FastifyInstance) {
-    server.get('/', {
+export default async function userRoutes(fastify: FastifyInstance, options: FastifyPluginOptions) {
+    // GET /users - List all users with pagination
+    fastify.get('/', {
         schema: {
+            description: 'Get list of users with pagination',
             tags: ['User'],
-            summary: 'List all users',
-            response: {
-                200: {
-                    type: 'array',
-                    items: {
-                        type: 'object',
-                        properties: {
-                            id: { type: 'number' },
-                            name: { type: 'string' },
-                            email: { type: 'string' },
-                            role: { type: 'string' },
-                            group: { type: 'string' },
-                            createdAt: { type: 'string', format: 'date-time' }
-                        }
-                    }
-                }
-            }
-        }
-    }, getUserListHandler)
-
-    server.get('/:id', {
-        schema: {
-            tags: ['User'],
-            summary: 'Get user by ID',
-            params: {
+            querystring: {
                 type: 'object',
                 properties: {
-                    id: { type: 'number' }
-                },
-                required: ['id']
+                    page: { type: 'number', minimum: 1, default: 1 },
+                    limit: { type: 'number', minimum: 1, maximum: 100, default: 10 },
+                    search: { type: 'string' },
+                    role: { type: 'string', enum: ['USER', 'ADMIN'] }
+                }
             },
             response: {
                 200: {
                     type: 'object',
                     properties: {
-                        id: { type: 'number' },
-                        name: { type: 'string' },
-                        email: { type: 'string' },
-                        role: { type: 'string' },
-                        group: { type: 'string' },
-                        createdAt: { type: 'string', format: 'date-time' }
+                        data: {
+                            type: 'array',
+                            items: UserResponseSchema
+                        },
+                        pagination: {
+                            type: 'object',
+                            properties: {
+                                page: { type: 'number' },
+                                limit: { type: 'number' },
+                                total: { type: 'number' },
+                                pages: { type: 'number' }
+                            }
+                        }
                     }
                 }
             }
-        }
+        },
+        preHandler: [fastify.authenticate]
+    }, getUserListHandler)
+
+    // GET /users/:id - Get user by ID
+    fastify.get('/:id', {
+        schema: {
+            description: 'Get user by ID',
+            tags: ['User'],
+            params: {
+                type: 'object',
+                required: ['id'],
+                properties: {
+                    id: { type: 'string', pattern: '^[0-9]+$' }
+                }
+            },
+            response: {
+                200: UserResponseSchema
+            }
+        },
+        preHandler: [fastify.authenticate]
     }, getUserHandler)
 
-    server.post('/', {
+    // POST /users - Create new user
+    fastify.post('/', {
         schema: {
+            description: 'Create a new user',
             tags: ['User'],
-            summary: 'Create new user',
             body: CreateUserSchemaJson,
             response: {
-                201: {
-                    type: 'object',
-                    properties: {
-                        id: { type: 'number' },
-                        name: { type: 'string' },
-                        email: { type: 'string' },
-                        role: { type: 'string' },
-                        group: { type: 'string' },
-                        createdAt: { type: 'string', format: 'date-time' }
-                    }
+                201: UserResponseSchema
+            }
+        },
+        preHandler: [fastify.authenticate, fastify.authorize(['ADMIN'])]
+    }, createUserHandler)
+
+    // PUT /users/:id - Update user
+    fastify.put('/:id', {
+        schema: {
+            description: 'Update user by ID',
+            tags: ['User'],
+            params: {
+                type: 'object',
+                required: ['id'],
+                properties: {
+                    id: { type: 'string', pattern: '^[0-9]+$' }
+                }
+            },
+            body: UpdateUserSchemaJson,
+            response: {
+                200: UserResponseSchema
+            }
+        },
+        preHandler: [fastify.authenticate, fastify.authorize(['ADMIN'])]
+    }, updateUserHandler)
+
+    // DELETE /users/:id - Delete user
+    fastify.delete('/:id', {
+        schema: {
+            description: 'Delete user by ID',
+            tags: ['User'],
+            params: {
+                type: 'object',
+                required: ['id'],
+                properties: {
+                    id: { type: 'string', pattern: '^[0-9]+$' }
+                }
+            },
+            response: {
+                204: {
+                    type: 'null',
+                    description: 'User deleted successfully'
                 }
             }
-        }
-    }, createUserHandler)
+        },
+        preHandler: [fastify.authenticate, fastify.authorize(['ADMIN'])]
+    }, deleteUserHandler)
 }

@@ -1,19 +1,27 @@
-// src/plugins/healthcheck.ts
-import { FastifyPluginAsync } from 'fastify'
+// services/user-service/src/presentation/routes/health.route.ts
+import { FastifyInstance, FastifyPluginOptions } from 'fastify'
 
-const healthcheckPlugin: FastifyPluginAsync = async (fastify) => {
-    fastify.get('/health', async () => {
-        return { status: 'ok' }
+export default async function healthRoute(fastify: FastifyInstance, options: FastifyPluginOptions) {
+    fastify.get('/health', {
+        schema: {
+            description: 'Health check endpoint',
+            tags: ['Health'],
+            response: {
+                200: {
+                    type: 'object',
+                    properties: {
+                        status: { type: 'string' },
+                        timestamp: { type: 'string' },
+                        uptime: { type: 'number' }
+                    }
+                }
+            }
+        }
+    }, async (request, reply) => {
+        return reply.send({
+            status: 'OK',
+            timestamp: new Date().toISOString(),
+            uptime: process.uptime()
+        })
     })
-
-    fastify.get('/readiness', async () => {
-        // TODO: check database, Kafka
-        return { status: 'ready' }
-    })
-
-    fastify.get('/liveness', async () => {
-        return { status: 'alive' }
-      })
 }
-
-export default healthcheckPlugin
