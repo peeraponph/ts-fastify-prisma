@@ -1,7 +1,6 @@
-// types/auth.ts
+// services/user-service/src/shared/types/auth.ts
 export interface UserPayload {
     id: string
     email: string
     role: 'admin' | 'user' | 'editor'
 }
-  

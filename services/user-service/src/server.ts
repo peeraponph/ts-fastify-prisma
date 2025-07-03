@@ -1,24 +1,15 @@
-// --- Tracing & Monitoring ---
+// services/user-service/src/server.ts
 import './infrastructure/tracing/opentelemetry'
-
-// --- Core ---
 import Fastify from 'fastify'
-
-// --- Routes & Plugins ---
 import userRoutes from './presentation/routes/user.route'
 import healthRoute from './presentation/routes/health.route'
 import logger from './presentation/plugins/logger'
 import authPlugin from './infrastructure/auth/auth.plugin'
-
-// --- Kafka & Telemetry ---
 import { connectProducer } from './infrastructure/kafka/kafka'
 import { startTelemetry } from './infrastructure/tracing/opentelemetry'
-
-// --- Swagger ---
 import fastifySwagger from '@fastify/swagger'
 import fastifySwaggerUi from '@fastify/swagger-ui'
 
-//  instance of Fastify server
 const server = Fastify({ logger: true })
 
 // Register routes
@@ -27,7 +18,7 @@ async function registerRoutes() {
     await server.register(healthRoute)
 }
 
-// Register all plugins
+// Register all plugins with type assertion
 async function setupPlugins() {
     await server.register(logger)
     await server.register(authPlugin)
@@ -36,16 +27,18 @@ async function setupPlugins() {
 // Register Swagger documentation
 async function setupSwagger() {
     await server.register(fastifySwagger, {
-        openapi: {
-            openapi: '3.0.0',
+        swagger: {
             info: {
                 title: 'User Service API',
                 description: 'API documentation for managing users',
                 version: '1.0.0',
             },
             tags: [{ name: 'User', description: 'User management endpoints' }],
-        },
-        exposeRoute: true,
+            host: 'localhost:5000',
+            schemes: ['http'],
+            consumes: ['application/json'],
+            produces: ['application/json'],
+        }
     })
 
     await server.register(fastifySwaggerUi, {
@@ -55,25 +48,25 @@ async function setupSwagger() {
             deepLinking: false,
         },
         staticCSP: false,
+        transformStaticCSP: (header) => header,
     })
 
-    server.get('/', (_, reply) => reply.redirect('/docs'))
-
+    server.get('/', async (request, reply) => {
+        return reply.redirect('/docs')
+    })
 }
 
 async function startServer() {
     try {
         await connectProducer()
         await startTelemetry()
-        await registerRoutes()
         await setupPlugins()
         await setupSwagger()
+        await registerRoutes()
 
-        // Ensure server is ready before starting
         await server.ready()
-        server.swagger()
-
         await server.listen({ port: 5000, host: '0.0.0.0' })
+
         server.log.info('User-service running at http://localhost:5000')
         server.log.info('Swagger docs available at http://localhost:5000/docs')
     } catch (err) {

@@ -1,4 +1,4 @@
-// src/types/fastify.d.ts
+// services/user-service/src/types/fastify.d.ts
 import { FastifyRequest, FastifyReply } from 'fastify'
 import { UserPayload } from '../shared/types/auth'
 

@@ -1,5 +1,5 @@
-import fp from 'fastify-plugin'
-import { FastifyInstance } from 'fastify'
+// services/user-service/src/presentation/plugins/logger.ts
+import { FastifyInstance, FastifyPluginOptions } from 'fastify'
 import pino from 'pino'
 
 const logger = pino({
@@ -13,6 +13,6 @@ const logger = pino({
     }
 })
 
-export default fp(async function (fastify: FastifyInstance) {
+export default async function loggerPlugin(fastify: FastifyInstance, options: FastifyPluginOptions) {
     fastify.log = logger
-})
+}
