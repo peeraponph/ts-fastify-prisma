@@ -1,14 +1,13 @@
 // services/user-service/src/server.ts
-import './infrastructure/tracing/opentelemetry'
 import Fastify from 'fastify'
+import { FastifyOtelInstrumentation } from '@fastify/otel'
+import fastifySwagger from '@fastify/swagger'
+import fastifySwaggerUi from '@fastify/swagger-ui'
+import authPlugin from './infrastructure/auth/auth.plugin'
+import { connectProducer } from './infrastructure/kafka/kafka'
 import userRoutes from './presentation/routes/user.route'
 import authRoutes from './presentation/routes/auth.route'
 import healthRoute from './presentation/routes/health.route'
-import authPlugin from './infrastructure/auth/auth.plugin'
-import { connectProducer } from './infrastructure/kafka/kafka'
-import { startTelemetry } from './infrastructure/tracing/opentelemetry'
-import fastifySwagger from '@fastify/swagger'
-import fastifySwaggerUi from '@fastify/swagger-ui'
 
 const server = Fastify({
     logger: {
@@ -21,57 +20,61 @@ const server = Fastify({
             }
         }
     },
-    forceCloseConnections: true, 
-    connectionTimeout: 1000, 
+    forceCloseConnections: true,
+    connectionTimeout: 1000,
 })
 
-// Global error handler
+// 2. Setup OpenTelemetry Instrumentation
+const otel = new FastifyOtelInstrumentation({
+    servername: 'user-service',
+    
+    // ใส่ requestHook หรือ ignorePaths ได้ถ้าต้องการ
+})
+
+// 3. Register otel plugin BEFORE any routes or plugins
+server.register(otel.plugin() as any)
+
+// 💥 Global error handler
 server.setErrorHandler(async (error, request, reply) => {
     request.log.error(error)
-
     if (error.validation) {
         return reply.status(400).send({
             statusCode: 400,
             error: 'Bad Request',
             message: 'Validation failed',
-            details: error.validation
+            details: error.validation,
         })
     }
-
     return reply.status(500).send({
         statusCode: 500,
         error: 'Internal Server Error',
-        message: 'An unexpected error occurred'
+        message: 'Unexpected error occurred',
     })
 })
 
-// Setup Swagger
+// 📘 Swagger setup
 async function setupSwagger() {
     await server.register(fastifySwagger, {
         swagger: {
             info: {
                 title: 'User Service API',
-                description: 'API documentation for managing users',
+                description: 'API for user management',
                 version: '1.0.0',
             },
             host: 'localhost:5000',
-            schemes: ['http', 'https'],
+            schemes: ['http'],
             consumes: ['application/json'],
             produces: ['application/json'],
-            tags: [
-                { name: 'User', description: 'User management endpoints' },
-                { name: 'Health', description: 'Health check endpoints' }
-            ],
             securityDefinitions: {
                 Bearer: {
                     type: 'apiKey',
                     name: 'Authorization',
                     in: 'header',
-                    description: 'JWT token for authentication'
-                }
+                    description: 'JWT token',
+                },
             },
-            security: [{ Bearer: [] }]
-        }
+            security: [{ Bearer: [] }],
+        },
     })
 
     await server.register(fastifySwaggerUi, {
@@ -84,46 +87,38 @@ async function setupSwagger() {
         transformStaticCSP: (header) => header,
     })
 
-    server.get('/', async (request, reply) => {
-        return reply.redirect('/docs')
-    })
+    server.get('/', async (req, reply) => reply.redirect('/docs'))
 }
 
-// Register plugins and routes
+// 🧩 Register plugins and routes
 async function setupServer() {
-    // Register auth plugin first
     await server.register(authPlugin)
-
-    // Register Swagger
     await setupSwagger()
-
-    // Register routes
     await server.register(userRoutes, { prefix: '/api/v1/users' })
     await server.register(authRoutes, { prefix: '/auth' })
     await server.register(healthRoute, { prefix: '/api/v1' })
 }
 
-// Graceful Shutdown แบบเร็ว (สำหรับ Dev)
+// ⏹️ Graceful shutdown
 async function fastShutdown() {
     console.log('\n⚠️  Force shutting down...')
-    await server.close().catch(() => { }) // ปิด Fastify แบบไม่ต้องรอ
-    process.exit(0) // ออกทันที
+    await server.close().catch(() => { })
+    process.exit(0)
 }
 
-// ใช้ `SIGINT` (Ctrl+C) และ `SIGTERM` เพื่อปิดเร็ว
 process.on('SIGINT', fastShutdown)
 process.on('SIGTERM', fastShutdown)
 
+// 🚀 Start server
 async function startServer() {
     try {
         await connectProducer()
-        await startTelemetry()
         await setupServer()
 
         await server.ready()
         await server.listen({ port: 5000, host: '0.0.0.0' })
 
-        server.log.info('🚀 User Service running at http://localhost:5000')
+        server.log.info('✅ User Service running at http://localhost:5000')
         server.log.info('📚 Swagger docs available at http://localhost:5000/docs')
     } catch (err) {
         server.log.error(err)
