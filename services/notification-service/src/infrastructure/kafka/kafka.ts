@@ -1,3 +1,5 @@
+//  service/notification-service/src/infrastructure/kafka/kafka.ts
+
 import { Kafka } from 'kafkajs'
 
 export const kafka = new Kafka({

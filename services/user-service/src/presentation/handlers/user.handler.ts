@@ -129,5 +129,9 @@ export const deleteUserHandler = asyncHandler(async (
 
     await userService.deleteUser(id)
 
-    return reply.code(204).send()
+    return reply.code(200).send({
+        statusCode: 200,
+        error: 'null',
+        message: `User id:${id} deleted successfully`
+    })
 })
