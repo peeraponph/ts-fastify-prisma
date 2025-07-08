@@ -1,6 +1,18 @@
 # docker-compose.yml
 version: "3.8"
 services:
+  # outbox-service:
+  #   build:
+  #     context: ./services/outbox-service
+  #   ports:
+  #     - "5002:5002"
+  #   environment:
+  #     - DATABASE_URL=postgresql://user:pass@postgres:5432/users?schema=outbox
+  #     - KAFKA_BROKER=kafka:29092
+  #   depends_on:
+  #     - kafka
+  #     - postgres
+
   zookeeper:
     image: confluentinc/cp-zookeeper:latest
     environment:
@@ -105,3 +117,5 @@ services:
 volumes:
   pgdata:
   grafana-storage:
+
+

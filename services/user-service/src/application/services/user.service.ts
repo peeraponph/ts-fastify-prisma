@@ -3,14 +3,11 @@ import { UserRepository, ListUsersOptions, PaginatedResult } from '../ports/user
 import { LogProducerPort } from '../ports/log.producer'
 import { hashPassword } from '../../shared/utils/password'
 import { User } from '../../domain/user.entity'
-import {
-  publishUserCreated,
-  publishUserDeleted,
-  publishUserUpdated
-} from '../events/user.producer'
+import { writeOutboxEvent } from './outbox.service'
 import { GetTimestampNow } from '../../shared/utils/time'
 import { getDiff } from '../../shared/utils/getdiff'
 import { CreateUserInput, UpdateUserInput } from '../../types/user.types'
+import { KafkaUserTopic } from '../../infrastructure/kafka/topic'
 
 export class UserService {
   constructor(
@@ -36,7 +33,18 @@ export class UserService {
 
     // Publish events
     await Promise.all([
-      publishUserCreated(createdUser),
+      writeOutboxEvent({
+        topic: KafkaUserTopic.USER_CREATED,
+        key: createdUser.id.toString(),
+        eventType: 'user.created',
+        payload: {
+          id: createdUser.id,
+          email: createdUser.email,
+          name: createdUser.name,
+          role: createdUser.role,
+          group: createdUser.group,
+        },
+      }),
       this.logProducer.sendUserLogEvent({
         eventType: 'user.log.created',
         actor: 'system',
@@ -78,7 +86,18 @@ export class UserService {
 
     // Publish events
     await Promise.all([
-      publishUserUpdated(updatedUser),
+      writeOutboxEvent({
+        topic: KafkaUserTopic.USER_UPDATED,
+        key: updatedUser.id.toString(),
+        eventType: 'USER_UPDATED',
+        payload: {
+          id: updatedUser.id,
+          email: updatedUser.email,
+          name: updatedUser.name,
+          role: updatedUser.role,
+          group: updatedUser.group,
+        },
+      }),
       this.logProducer.sendUserLogEvent({
         eventType: 'user.log.updated',
         actor: 'system',
@@ -101,7 +120,18 @@ export class UserService {
 
     // Publish events
     await Promise.all([
-      publishUserDeleted(id),
+      writeOutboxEvent({
+        topic: KafkaUserTopic.USER_DELETED,
+        key: existingUser.id.toString(),
+        eventType: 'USER_DELETED',
+        payload: {
+          id: existingUser.id,
+          email: existingUser.email,
+          name: existingUser.name,
+          role: existingUser.role,
+          group: existingUser.group,
+        },
+      }),
       this.logProducer.sendUserLogEvent({
         eventType: 'user.log.deleted',
         actor: 'system',
