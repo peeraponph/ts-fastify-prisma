@@ -4,10 +4,17 @@ import { producer } from '../../infrastructure/kafka/kafka'
 import { KafkaUserTopic } from '../../infrastructure/kafka/topic'
 import { User } from '../../domain/user.entity'
 
+import {
+    kafkaProduceSuccessCounter,
+    kafkaProduceErrorCounter,
+    kafkaProduceDurationHistogram
+} from '../../infrastructure/metrics/kafka.metrics'
+
 const tracer = trace.getTracer('user-service')
 
 async function sendKafkaEvent(topic: string, key: string, value: any, label: string) {
     const span = tracer.startSpan(`kafka.produce.${topic}`)
+    const start = process.hrtime()
 
     try {
         const payload = JSON.stringify(value)
@@ -16,6 +23,12 @@ async function sendKafkaEvent(topic: string, key: string, value: any, label: str
             topic,
             messages: [{ key, value: payload }],
         })
+
+        const diff = process.hrtime(start)
+        const durationInSec = diff[0] + diff[1] / 1e9
+        kafkaProduceDurationHistogram.labels(topic).observe(durationInSec)
+        kafkaProduceSuccessCounter.labels(topic).inc()
+        console.log('✅ kafkaProduceSuccessCounter updated for topic:', topic)
 
         span.setAttributes({
             'messaging.system': 'kafka',
@@ -26,15 +39,10 @@ async function sendKafkaEvent(topic: string, key: string, value: any, label: str
 
         span.setStatus({ code: 1 })
         console.log(`📤 Kafka | Sent ${label} for key ${key}`)
-
     } catch (err) {
-        if (err instanceof Error) {
-            span.recordException(err)
-            span.setStatus({ code: 2, message: err.message })
-        } else {
-            span.recordException(new Error('Unknown error'))
-            span.setStatus({ code: 2, message: String(err) })
-        }
+        kafkaProduceErrorCounter.labels(topic).inc()
+        span.recordException(err as any)
+        span.setStatus({ code: 2, message: String(err) })
         throw err
     } finally {
         span.end()

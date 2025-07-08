@@ -120,8 +120,8 @@ async function startServer() {
 
         await server.ready()
 
-        await server.listen({ port: 5000, host: '127.0.0.1' })
-        server.log.info('Swagger docs available at http://127.0.0.1:5000/docs')
+        await server.listen({ port: 5000, host: '0.0.0.0' })
+        server.log.info('Swagger docs available at http://localhost:5000/docs')
 
     } catch (err) {
         server.log.error(err)
