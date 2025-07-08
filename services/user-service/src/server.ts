@@ -1,6 +1,10 @@
 // services/user-service/src/server.ts
+import * as dotenv from 'dotenv'
+dotenv.config()
+
+import { setupOpenTelemetry, getOtelPlugin } from './infrastructure/tracing/otel'; 
+import { requestTracingPlugin } from "./infrastructure/tracing/request-tracing.plugin"
 import Fastify from 'fastify'
-import { FastifyOtelInstrumentation } from '@fastify/otel'
 import fastifySwagger from '@fastify/swagger'
 import fastifySwaggerUi from '@fastify/swagger-ui'
 import authPlugin from './infrastructure/auth/auth.plugin'
@@ -8,6 +12,7 @@ import { connectProducer } from './infrastructure/kafka/kafka'
 import userRoutes from './presentation/routes/user.route'
 import authRoutes from './presentation/routes/auth.route'
 import healthRoute from './presentation/routes/health.route'
+
 
 const server = Fastify({
     logger: {
@@ -23,16 +28,6 @@ const server = Fastify({
     forceCloseConnections: true,
     connectionTimeout: 1000,
 })
-
-// 2. Setup OpenTelemetry Instrumentation
-const otel = new FastifyOtelInstrumentation({
-    servername: 'user-service',
-    
-    // ใส่ requestHook หรือ ignorePaths ได้ถ้าต้องการ
-})
-
-// 3. Register otel plugin BEFORE any routes or plugins
-server.register(otel.plugin() as any)
 
 // 💥 Global error handler
 server.setErrorHandler(async (error, request, reply) => {
@@ -112,14 +107,19 @@ process.on('SIGTERM', fastShutdown)
 // 🚀 Start server
 async function startServer() {
     try {
+
+        await setupOpenTelemetry();
+        await server.register(getOtelPlugin().plugin());
+        await server.register(requestTracingPlugin)
+
         await connectProducer()
         await setupServer()
 
         await server.ready()
-        await server.listen({ port: 5000, host: '0.0.0.0' })
 
-        server.log.info('✅ User Service running at http://localhost:5000')
-        server.log.info('📚 Swagger docs available at http://localhost:5000/docs')
+        await server.listen({ port: 5000, host: '127.0.0.1' })
+        server.log.info('Swagger docs available at http://127.0.0.1:5000/docs')
+
     } catch (err) {
         server.log.error(err)
         process.exit(1)

@@ -14,8 +14,9 @@
     "outDir": "dist",
     "types": ["node", "jest"],
     "declaration": true,
-    "declarationMap": true
+    "declarationMap": true,
+    "typeRoots": ["./src/shared/types", "./node_modules/@types"]
   },
-  "include": ["src/**/*"],
+  "include": ["src/**/*",  "src/shared/types"],
   "exclude": ["node_modules", "dist", "**/*.test.ts"]
 }
