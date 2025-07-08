@@ -1,4 +1,6 @@
 // service/user-service/src/infrastructure/tracing/otel.ts
+
+import { FastifyPluginAsync } from 'fastify'
 import { NodeSDK } from '@opentelemetry/sdk-node';
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http';
 import { FastifyOtelInstrumentation } from '@fastify/otel';
@@ -9,7 +11,7 @@ import { KafkaJsInstrumentation } from '@opentelemetry/instrumentation-kafkajs'
 import { Resource } from '@opentelemetry/resources'
 import { SemanticResourceAttributes as ResAttr } from '@opentelemetry/semantic-conventions'
 
-diag.setLogger(new DiagConsoleLogger(), DiagLogLevel.DEBUG) 
+diag.setLogger(new DiagConsoleLogger(), DiagLogLevel.DEBUG)
 
 let otel: FastifyOtelInstrumentation;
 
@@ -23,9 +25,9 @@ export async function setupOpenTelemetry() {
             new FastifyOtelInstrumentation(),
             new RedisInstrumentation(),
             new KafkaJsInstrumentation(),
-          ],
+        ],
     });
-    
+
 
     await sdk.start();
     console.log('✅ OpenTelemetry SDK started')
@@ -35,6 +37,7 @@ export async function setupOpenTelemetry() {
     } as any);
 }
 
+
 export function getOtelPlugin() {
-    return otel;
-}
+    return otel.plugin
+} 

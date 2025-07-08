@@ -110,7 +110,7 @@ async function startServer() {
     try {
 
         await setupOpenTelemetry();
-        await server.register(getOtelPlugin().plugin());
+        await server.register(getOtelPlugin());
         await server.register(requestTracingPlugin)
 
         await server.register(metricsPlugin)
