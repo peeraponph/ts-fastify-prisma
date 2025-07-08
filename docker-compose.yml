@@ -72,6 +72,13 @@ services:
     depends_on:
       - tempo
 
+  prometheus:
+    image: prom/prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+
   postgres:
     image: postgres:16
     restart: always
