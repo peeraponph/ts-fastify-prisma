@@ -1,3 +1,5 @@
+// service/outbox-service/src/infrastructure/metrics/outbox.metrics.ts
+
 import { Counter, Histogram } from 'prom-client'
 import { register } from './index'
 

@@ -65,12 +65,18 @@ export async function processOutboxEvents() {
                 }
             })
         }
+        if (events.length > 0) {
+            console.log(`✅ Processed ${events.length} outbox events`)
+        } else {
+            console.log('🔄 No pending outbox events to process')
+        }
     } catch (err) {
         span.recordException(err as any)
         span.setStatus({
             code: SpanStatusCode.ERROR,
             message: String(err),
         })
+        console.error('❌ Error processing outbox events:', err)
     } finally {
         span.end()
     }

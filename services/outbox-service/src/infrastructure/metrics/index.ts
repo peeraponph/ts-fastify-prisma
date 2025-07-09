@@ -1,3 +1,5 @@
+//  services/outbox-service/src/infrastructure/metrics/index.ts
+
 import { Registry, collectDefaultMetrics } from 'prom-client'
 
 // ✅ สร้าง Registry ของ Prometheus
