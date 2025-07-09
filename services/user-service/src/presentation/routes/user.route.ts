@@ -81,7 +81,7 @@ export default async function userRoutes(fastify: FastifyInstance, options: Fast
                 201: UserResponseSchema
             }
         },
-        preHandler: [fastify.authenticate, fastify.authorize(['ADMIN'])]
+        // preHandler: [fastify.authenticate, fastify.authorize(['ADMIN'])]
     }, createUserHandler)
 
     // PUT /users/:id - Update user

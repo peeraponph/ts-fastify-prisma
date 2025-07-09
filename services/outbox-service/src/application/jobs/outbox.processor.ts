@@ -81,5 +81,5 @@ export async function startOutboxProcessor() {
         processOutboxEvents().catch((err) =>
             console.error('❌ Error in outbox processor loop:', err),
         )
-    }, 5000)
+    }, 10_000)
 }

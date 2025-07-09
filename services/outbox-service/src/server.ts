@@ -1,6 +1,7 @@
 import Fastify from 'fastify'
 import metricsPlugin from './infrastructure/metrics/metrics.plugin'
 import { startOutboxProcessor } from './application/jobs/outbox.processor'
+import { connectProducer } from './infrastructure/kafka/kafka'
 
 async function startServer() {
     const fastify = Fastify({
@@ -9,6 +10,9 @@ async function startServer() {
 
     // ✅ Metrics endpoint
     await fastify.register(metricsPlugin)
+
+    // ✅ Connect Kafka producer before starting loop
+    await connectProducer()
 
     // ✅ Start processing loop
     await startOutboxProcessor()
