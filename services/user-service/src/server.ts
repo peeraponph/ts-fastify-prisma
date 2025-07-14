@@ -2,7 +2,7 @@
 import * as dotenv from 'dotenv'
 dotenv.config()
 
-import { setupOpenTelemetry, getOtelPlugin } from './infrastructure/tracing/otel'; 
+import { setupOpenTelemetry, otelPlugin } from './infrastructure/tracing/otel'; 
 import { requestTracingPlugin } from "./infrastructure/tracing/request-tracing.plugin"
 import metricsPlugin from './infrastructure/metrics/metrics.plugin'
 import Fastify from 'fastify'
@@ -110,7 +110,8 @@ async function startServer() {
     try {
 
         await setupOpenTelemetry();
-        await server.register(getOtelPlugin());
+        await (server.register as any)(otelPlugin());
+
         await server.register(requestTracingPlugin)
 
         await server.register(metricsPlugin)
