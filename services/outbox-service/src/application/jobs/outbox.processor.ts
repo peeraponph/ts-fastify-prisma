@@ -1,3 +1,4 @@
+// services/outbox-service/src/infrastructure/tracing/otel.ts
 import { PrismaClient } from '../../generated/prisma'
 import { producer } from '../../infrastructure/kafka/kafka'
 import { trace, context, SpanStatusCode, Span } from '@opentelemetry/api'

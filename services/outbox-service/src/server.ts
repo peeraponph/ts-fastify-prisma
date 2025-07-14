@@ -1,25 +1,21 @@
-import Fastify from 'fastify'
-import metricsPlugin from './infrastructure/metrics/metrics.plugin'
-import { startOutboxProcessor } from './application/jobs/outbox.processor'
-import { connectProducer } from './infrastructure/kafka/kafka'
+// services/outbox-service/src/server.ts
+
+import Fastify from 'fastify';
+import metricsPlugin from './infrastructure/metrics/metrics.plugin';
+import { startOutboxProcessor } from './application/jobs/outbox.processor';
+import { connectProducer } from './infrastructure/kafka/kafka';
+import { setupOpenTelemetry } from './infrastructure/tracing/otel';
 
 async function startServer() {
-    const fastify = Fastify({
-        logger: true,
-    })
+    const app = Fastify({ logger: true });
 
-    // ✅ Metrics endpoint
-    await fastify.register(metricsPlugin)
+    await setupOpenTelemetry();
+    await app.register(metricsPlugin);
+    await connectProducer();
+    startOutboxProcessor();
 
-    // ✅ Connect Kafka producer before starting loop
-    await connectProducer()
-
-    // ✅ Start processing loop
-    await startOutboxProcessor()
-
-    // ✅ Start Fastify server (for Prometheus to scrape)
-    await fastify.listen({ port: 5002, host: '0.0.0.0' })
-    console.log('🚀 outbox-processor listening on port 5002')
+    await app.listen({ port: 5002, host: '0.0.0.0' });
+    console.log('🚀 outbox-service listening on port 5002');
 }
 
-startServer()
+startServer();
