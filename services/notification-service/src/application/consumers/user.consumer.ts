@@ -1,3 +1,5 @@
+//  service/notification-service/src/application/consumers/user.consumer.ts
+
 import { kafka } from '../../infrastructure/kafka/kafka'
 import { KafkaUserTopic } from '../../infrastructure/kafka/topic'
 import { trace, context, propagation } from '@opentelemetry/api'
