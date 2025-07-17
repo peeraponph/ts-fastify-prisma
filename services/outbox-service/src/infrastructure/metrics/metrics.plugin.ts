@@ -4,7 +4,14 @@ import { FastifyPluginAsync } from 'fastify'
 import { register } from './index'
 
 const metricsPlugin: FastifyPluginAsync = async (fastify) => {
-    fastify.get('/metrics', { logLevel: 'silent' }, async (_req, reply) => {
+    fastify.get('/metrics', {
+        logLevel: 'silent',
+        config: {
+            openTelemetry: {
+                enabled: false
+            }
+        }
+    }, async (_req, reply) => {
         reply.header('Content-Type', register.contentType)
         return register.metrics()
     })

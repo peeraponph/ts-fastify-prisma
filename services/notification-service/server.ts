@@ -3,12 +3,16 @@
 import Fastify from 'fastify'
 import metricsPlugin from './src/infrastructure/metrics/metrics.plugin'
 import { startKafkaConsumers } from './src/infrastructure/kafka/consumer'
+import { setupOpenTelemetry } from './src/infrastructure/tracing/otel'
 
 async function start() {
     const fastify = Fastify({
         logger: true, // close if yu don't want logs
     })
 
+    // setup OpenTelemetry
+    await setupOpenTelemetry()
+    
     //endpoint /metrics
     await fastify.register(metricsPlugin)
 

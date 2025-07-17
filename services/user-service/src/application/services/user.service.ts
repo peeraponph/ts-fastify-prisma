@@ -5,9 +5,9 @@ import { hashPassword } from '../../shared/utils/password'
 import { User } from '../../domain/user.entity'
 import { writeOutboxEvent } from './outbox.service'
 import { GetTimestampNow } from '../../shared/utils/time'
-import { getDiff } from '../../shared/utils/getdiff'
 import { CreateUserInput, UpdateUserInput } from '../../types/user.types'
 import { KafkaUserTopic } from '../../infrastructure/kafka/topic'
+import { context, trace, propagation } from '@opentelemetry/api'
 
 export class UserService {
   constructor(
@@ -16,44 +16,50 @@ export class UserService {
   ) { }
 
   async createUser(userData: CreateUserInput): Promise<User> {
-    // Check if user already exists
-    const existingUser = await this.userRepository.findByEmail(userData.email)
-    if (existingUser) {
-      throw new Error('User with this email already exists')
-    }
+    const tracer = trace.getTracer('user-service')
+    return await context.with(trace.setSpan(context.active(), tracer.startSpan('user.createUser')), async () => {
 
-    const hashedPassword = await hashPassword(userData.password)
+      try {
+        const existingUser = await this.userRepository.findByEmail(userData.email)
+        if (existingUser) throw new Error('User already exists')
 
-    const data = {
-      ...userData,
-      password: hashedPassword,
-    }
+        const hashedPassword = await hashPassword(userData.password)
+        const createdUser = await this.userRepository.createUser({ ...userData, password: hashedPassword })
 
-    const createdUser = await this.userRepository.createUser(data)
+        // 👉 inject trace context into custom carrier (headers-like object)
+        const carrier: Record<string, string> = {}
+        propagation.inject(context.active(), carrier)
 
-    // Publish events
-    await Promise.all([
-      writeOutboxEvent({
-        topic: KafkaUserTopic.USER_CREATED,
-        key: createdUser.id.toString(),
-        eventType: 'user.created',
-        payload: {
-          id: createdUser.id,
-          email: createdUser.email,
-          name: createdUser.name,
-          role: createdUser.role,
-          group: createdUser.group,
-        },
-      }),
-      this.logProducer.sendUserLogEvent({
-        eventType: 'user.log.created',
-        actor: 'system',
-        targetUser: createdUser,
-        timestamp: GetTimestampNow()
-      })
-    ])
+        await Promise.all([
+          writeOutboxEvent({
+            topic: KafkaUserTopic.USER_CREATED,
+            key: createdUser.id.toString(),
+            eventType: KafkaUserTopic.USER_CREATED,
+            payload: {
+              id: createdUser.id,
+              email: createdUser.email,
+              name: createdUser.name,
+              role: createdUser.role,
+              group: createdUser.group,
+            },
+            headers: carrier, // 🔥 include trace context
+          }),
+          this.logProducer.sendUserLogEvent({
+            eventType: 'user.log.created',
+            actor: 'system',
+            targetUser: createdUser,
+            timestamp: GetTimestampNow()
+          })
+        ])
+        return createdUser
 
-    return createdUser
+      } catch (err) {
+
+        throw err
+
+      } finally {
+      }
+    })
   }
 
   async listUsers(options: ListUsersOptions = {}): Promise<PaginatedResult<User>> {
@@ -69,27 +75,22 @@ export class UserService {
   }
 
   async updateUser(id: number, userData: UpdateUserInput): Promise<User> {
-    const existingUser = await this.userRepository.findById(id)
-    if (!existingUser) {
-      throw new Error('User not found')
-    }
+    const span = trace.getTracer('user-service').startSpan('user.updateUser')
+    return await context.with(trace.setSpan(context.active(), span), async () => {
+      const existingUser = await this.userRepository.findById(id)
+      if (!existingUser) throw new Error('User not found')
 
-    // Check email uniqueness if email is being updated
-    if (userData.email && userData.email !== existingUser.email) {
-      const userWithEmail = await this.userRepository.findByEmail(userData.email)
-      if (userWithEmail && userWithEmail.id !== id) {
-        throw new Error('Email already in use by another user')
+      if (userData.email && userData.email !== existingUser.email) {
+        const userWithEmail = await this.userRepository.findByEmail(userData.email)
+        if (userWithEmail && userWithEmail.id !== id) throw new Error('Email already in use')
       }
-    }
 
-    const updatedUser = await this.userRepository.update(id, userData)
+      const updatedUser = await this.userRepository.update(id, userData)
 
-    // Publish events
-    await Promise.all([
-      writeOutboxEvent({
+      await writeOutboxEvent({
         topic: KafkaUserTopic.USER_UPDATED,
         key: updatedUser.id.toString(),
-        eventType: 'USER_UPDATED',
+        eventType: KafkaUserTopic.USER_UPDATED,
         payload: {
           id: updatedUser.id,
           email: updatedUser.email,
@@ -97,17 +98,11 @@ export class UserService {
           role: updatedUser.role,
           group: updatedUser.group,
         },
-      }),
-      this.logProducer.sendUserLogEvent({
-        eventType: 'user.log.updated',
-        actor: 'system',
-        targetUser: updatedUser,
-        changes: getDiff(existingUser, updatedUser),
-        timestamp: GetTimestampNow()
       })
-    ])
 
-    return updatedUser
+      span.end()
+      return updatedUser
+    })
   }
 
   async deleteUser(id: number): Promise<void> {
@@ -123,7 +118,7 @@ export class UserService {
       writeOutboxEvent({
         topic: KafkaUserTopic.USER_DELETED,
         key: existingUser.id.toString(),
-        eventType: 'USER_DELETED',
+        eventType: KafkaUserTopic.USER_DELETED,
         payload: {
           id: existingUser.id,
           email: existingUser.email,

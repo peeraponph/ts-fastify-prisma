@@ -1,3 +1,5 @@
+// services/user-service/src/infrastructure/tracing/otel.ts
+
 import { FastifyOtelInstrumentation } from '@fastify/otel'
 import { NodeSDK } from '@opentelemetry/sdk-node'
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http'
@@ -5,8 +7,8 @@ import { KafkaJsInstrumentation } from '@opentelemetry/instrumentation-kafkajs'
 import { RedisInstrumentation } from '@opentelemetry/instrumentation-redis'
 
 const otelInstrumentation = new FastifyOtelInstrumentation({
-    servername: process.env.OTEL_SERVICE_NAME || 'outbox-service',
-    registerOnInitialization: false, // เราจะ register เอง
+    servername: process.env.OTEL_SERVICE_NAME || 'user-service',
+    registerOnInitialization: false,
     requestHook: (span, req) => {
         span.setAttribute('custom.userAgent', req.headers['user-agent'] || '')
     },

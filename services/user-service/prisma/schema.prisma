@@ -29,6 +29,7 @@ model Outbox {
   key       String
   eventType String
   payload   Json
+  headers   Json?
   status    String   @default("PENDING")
   createdAt DateTime @default(now())
   sentAt    DateTime?
