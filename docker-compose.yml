@@ -1,17 +1,6 @@
 # docker-compose.yml
 version: "3.8"
 services:
-  # outbox-service:
-  #   build:
-  #     context: ./services/outbox-service
-  #   ports:
-  #     - "5002:5002"
-  #   environment:
-  #     - DATABASE_URL=postgresql://user:pass@postgres:5432/users?schema=outbox
-  #     - KAFKA_BROKER=kafka:29092
-  #   depends_on:
-  #     - kafka
-  #     - postgres
 
   zookeeper:
     image: confluentinc/cp-zookeeper:latest
@@ -60,12 +49,6 @@ services:
       - ./tempo/otel-collector-config.yaml:/etc/otel-collector-config.yaml
     ports:
       - "14318:4318"
-
-  jaeger:
-    image: jaegertracing/all-in-one
-    ports:
-      - "16686:16686" # UI
-      - "14268:14268"
 
   redis:
     image: redis:7
