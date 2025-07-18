@@ -8,6 +8,7 @@ import { GetTimestampNow } from '../../shared/utils/time'
 import { CreateUserInput, UpdateUserInput } from '../../types/user.types'
 import { KafkaUserTopic } from '../../infrastructure/kafka/topic'
 import { context, trace, propagation } from '@opentelemetry/api'
+import { appendUserEvent } from '../../infrastructure/eventstore/saveEvent';
 
 export class UserService {
   constructor(
@@ -26,44 +27,32 @@ export class UserService {
 
         const hashedPassword = await hashPassword(userData.password)
 
-        const createSpan = tracer.startSpan('user.db.createUser')
-        const createdUser = await context.with(trace.setSpan(context.active(), createSpan), async () => {
-          return this.userRepository.createUser({ ...userData, password: hashedPassword })
-        })
-        createSpan.end()
+        const createdUser = await this.userRepository.createUser({ ...userData, password: hashedPassword })
 
-        // inject trace context into carrier
         const carrier: Record<string, string> = {}
         propagation.inject(context.active(), carrier)
 
-        const outboxSpan = tracer.startSpan('user.outbox.write')
-        await context.with(trace.setSpan(context.active(), outboxSpan), async () => {
-          await writeOutboxEvent({
-            topic: KafkaUserTopic.USER_CREATED,
-            key: createdUser.id.toString(),
-            eventType: KafkaUserTopic.USER_CREATED,
-            payload: {
-              id: createdUser.id,
-              email: createdUser.email,
-              name: createdUser.name,
-              role: createdUser.role,
-              group: createdUser.group,
-            },
-            headers: carrier,
-          })
+        await writeOutboxEvent({
+          topic: KafkaUserTopic.USER_CREATED,
+          key: createdUser.id.toString(),
+          eventType: KafkaUserTopic.USER_CREATED,
+          payload: {
+            id: createdUser.id,
+            email: createdUser.email,
+            name: createdUser.name,
+            role: createdUser.role,
+            group: createdUser.group,
+          },
+          headers: carrier,
         })
-        outboxSpan.end()
 
-        const logSpan = tracer.startSpan('user.log.send')
-        await context.with(trace.setSpan(context.active(), logSpan), async () => {
-          await this.logProducer.sendUserLogEvent({
-            eventType: 'user.log.created',
-            actor: 'system',
-            targetUser: createdUser,
-            timestamp: GetTimestampNow()
-          })
+        await appendUserEvent(createdUser.id.toString(), 'UserCreated', {
+          id: createdUser.id,
+          name: createdUser.name,
+          email: createdUser.email,
+          role: createdUser.role,
+          group: createdUser.group
         })
-        logSpan.end()
 
         return createdUser
       } catch (err) {
@@ -74,6 +63,7 @@ export class UserService {
       }
     })
   }
+
 
   async updateUser(id: number, userData: UpdateUserInput): Promise<User> {
     const tracer = trace.getTracer('user-service')
@@ -89,28 +79,28 @@ export class UserService {
           if (userWithEmail && userWithEmail.id !== id) throw new Error('Email already in use')
         }
 
-        const updateSpan = tracer.startSpan('user.db.updateUser')
-        const updatedUser = await context.with(trace.setSpan(context.active(), updateSpan), async () => {
-          return this.userRepository.update(id, userData)
-        })
-        updateSpan.end()
+        const updatedUser = await this.userRepository.update(id, userData)
 
-        const outboxSpan = tracer.startSpan('user.outbox.write')
-        await context.with(trace.setSpan(context.active(), outboxSpan), async () => {
-          await writeOutboxEvent({
-            topic: KafkaUserTopic.USER_UPDATED,
-            key: updatedUser.id.toString(),
-            eventType: KafkaUserTopic.USER_UPDATED,
-            payload: {
-              id: updatedUser.id,
-              email: updatedUser.email,
-              name: updatedUser.name,
-              role: updatedUser.role,
-              group: updatedUser.group,
-            },
-          })
+        await writeOutboxEvent({
+          topic: KafkaUserTopic.USER_UPDATED,
+          key: updatedUser.id.toString(),
+          eventType: KafkaUserTopic.USER_UPDATED,
+          payload: {
+            id: updatedUser.id,
+            email: updatedUser.email,
+            name: updatedUser.name,
+            role: updatedUser.role,
+            group: updatedUser.group,
+          },
         })
-        outboxSpan.end()
+
+        await appendUserEvent(updatedUser.id.toString(), 'UserUpdated', {
+          id: updatedUser.id,
+          name: updatedUser.name,
+          email: updatedUser.email,
+          role: updatedUser.role,
+          group: updatedUser.group
+        })
 
         return updatedUser
       } catch (err) {
@@ -131,39 +121,28 @@ export class UserService {
         const existingUser = await this.userRepository.findById(id)
         if (!existingUser) throw new Error('User not found')
 
-        const deleteSpan = tracer.startSpan('user.db.deleteUser')
-        await context.with(trace.setSpan(context.active(), deleteSpan), async () => {
-          await this.userRepository.delete(id)
-        })
-        deleteSpan.end()
+        await this.userRepository.delete(id)
 
-        const outboxSpan = tracer.startSpan('user.outbox.write')
-        await context.with(trace.setSpan(context.active(), outboxSpan), async () => {
-          await writeOutboxEvent({
-            topic: KafkaUserTopic.USER_DELETED,
-            key: existingUser.id.toString(),
-            eventType: KafkaUserTopic.USER_DELETED,
-            payload: {
-              id: existingUser.id,
-              email: existingUser.email,
-              name: existingUser.name,
-              role: existingUser.role,
-              group: existingUser.group,
-            },
-          })
+        await writeOutboxEvent({
+          topic: KafkaUserTopic.USER_DELETED,
+          key: existingUser.id.toString(),
+          eventType: KafkaUserTopic.USER_DELETED,
+          payload: {
+            id: existingUser.id,
+            email: existingUser.email,
+            name: existingUser.name,
+            role: existingUser.role,
+            group: existingUser.group,
+          },
         })
-        outboxSpan.end()
 
-        const logSpan = tracer.startSpan('user.log.send')
-        await context.with(trace.setSpan(context.active(), logSpan), async () => {
-          await this.logProducer.sendUserLogEvent({
-            eventType: 'user.log.deleted',
-            actor: 'system',
-            targetUser: existingUser,
-            timestamp: GetTimestampNow()
-          })
+        await appendUserEvent(existingUser.id.toString(), 'UserDeleted', {
+          id: existingUser.id,
+          name: existingUser.name,
+          email: existingUser.email,
+          role: existingUser.role,
+          group: existingUser.group
         })
-        logSpan.end()
       } catch (err) {
         span.recordException(err as any)
         throw err
