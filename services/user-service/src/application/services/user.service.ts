@@ -8,6 +8,7 @@ import { GetTimestampNow } from '../../shared/utils/time'
 import { CreateUserInput, UpdateUserInput } from '../../types/user.types'
 import { KafkaUserTopic } from '../../infrastructure/kafka/topic'
 import { context, trace, propagation } from '@opentelemetry/api'
+import { appendUserEvent } from '../../infrastructure/eventstore/saveEvent';
 
 export class UserService {
   constructor(
@@ -53,6 +54,18 @@ export class UserService {
           })
         })
         outboxSpan.end()
+
+        const eventStoreSpan = tracer.startSpan('user.eventstore.appendEvent')
+        await context.with(trace.setSpan(context.active(), eventStoreSpan), async () => {
+          await appendUserEvent(createdUser.id.toString(), 'UserCreated', {
+            id: createdUser.id,
+            name: createdUser.name,
+            email: createdUser.email,
+            role: createdUser.role,
+            group: createdUser.group
+          });
+        })
+        eventStoreSpan.end()
 
         const logSpan = tracer.startSpan('user.log.send')
         await context.with(trace.setSpan(context.active(), logSpan), async () => {
