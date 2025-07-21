@@ -48,6 +48,7 @@ This project is fully containerized.
 ```bash
 docker-compose up --d
 ```
+---
 
 ## 🔧 Environment Setup
 Each service uses its own .env file. Start by copying the examples:
@@ -63,6 +64,7 @@ cp services/outbox-service/.env.example services/outbox-service/.env
 ``` bash
 cp services/notification-service/.env.example services/notification-service/.env
 ```
+---
 
 ## Migrate DB
 From inside a service folder:
@@ -89,6 +91,7 @@ Metrics:
 Visit Grafana UI at: http://localhost:3000
 (Default: admin / admin)
 
+---
 
 ## 📬 Event-Driven Communication
 - user-service inserts Outbox event in DB
