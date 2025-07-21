@@ -7,20 +7,13 @@
 ## 🛠 Built with:
 
 - Fastify (web server)
-- 
 - Prisma (ORM)
-- 
 - PostgreSQL
-- 
 - Kafka (via KafkaJS)
-- 
 - OpenTelemetry + OTLP + Grafana Tempo (tracing)
-- 
 - Prometheus + Grafana (metrics)
-- 
 - Docker Compose (multi-service local dev)
 
----
 
 ## 📁 Project Structure
 
@@ -37,9 +30,6 @@ services/
 │   └── prisma/
 └── docker-compose.yml
 ```
-
----
-
 
 ## ⚙️ Prerequisites
 
@@ -99,9 +89,6 @@ Metrics:
 Visit Grafana UI at: http://localhost:3000
 (Default: admin / admin)
 
----
-
----
 
 ## 📬 Event-Driven Communication
 - user-service inserts Outbox event in DB
@@ -109,5 +96,3 @@ Visit Grafana UI at: http://localhost:3000
 - notification-service consumes from Kafka → processes it
 
 All trace context is preserved across services (via Kafka propagation) and visible in Grafana Tempo.
-
----
