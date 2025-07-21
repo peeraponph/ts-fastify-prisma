@@ -2,7 +2,6 @@
 import { FastifyRequest, FastifyReply } from 'fastify'
 import { UserService } from '../../application/services/user.service'
 import { userRepository } from '../../infrastructure/repositories/user.repository.prisma'
-import { UserLogProducerService } from '../../application/events/log.producer'
 import {
     CreateUserSchema,
     UpdateUserSchema,
@@ -29,8 +28,7 @@ interface TypedRequestWithParams<T = unknown, P = unknown> extends Authenticated
     params: P
 }
 
-const logProducer = new UserLogProducerService()
-const userService = new UserService(userRepository, logProducer)
+const userService = new UserService(userRepository)
 
 // Error handler wrapper
 const asyncHandler = (fn: Function) => {

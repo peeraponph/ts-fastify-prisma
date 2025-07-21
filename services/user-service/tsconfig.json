@@ -1,22 +1,15 @@
 {
-  "extends": "../../tsconfig.base.json",
   "compilerOptions": {
+    "target": "ES2020",
     "module": "commonjs",
-    "target": "es2020",
-    "esModuleInterop": true,
-    "allowSyntheticDefaultImports": true,
-    "moduleResolution": "node",
-    "resolveJsonModule": true,
     "strict": true,
+    "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "rootDir": "src",
     "outDir": "dist",
-    "types": ["node", "jest"],
-    "declaration": true,
-    "declarationMap": true,
-    "typeRoots": ["./src/shared/types", "./node_modules/@types"]
+    "types": ["node", "jest"]
   },
-  "include": ["src/**/*",  "src/shared/types"],
-  "exclude": ["node_modules", "dist", "**/*.test.ts"]
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist"]
 }

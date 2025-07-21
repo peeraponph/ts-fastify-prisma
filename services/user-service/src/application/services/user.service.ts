@@ -13,7 +13,6 @@ import { appendUserEvent } from '../../infrastructure/eventstore/saveEvent';
 export class UserService {
   constructor(
     private readonly userRepository: UserRepository,
-    private readonly logProducer: LogProducerPort
   ) { }
 
   async createUser(userData: CreateUserInput): Promise<User> {
