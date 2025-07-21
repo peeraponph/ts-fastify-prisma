@@ -13,11 +13,19 @@ const tracer = trace.getTracer('outbox-service')
 
 export async function processOutboxEvents() {
     try {
-        const events = await prisma.outbox.findMany({
-            where: { status: 'PENDING' },
-            orderBy: { createdAt: 'asc' },
-            take: 10,
-        })
+        const events = await prisma.$queryRawUnsafe<any[]>(`
+          UPDATE "Outbox"
+          SET status = 'PROCESSING'
+          WHERE id IN (
+            SELECT id FROM "Outbox"
+            WHERE status = 'PENDING'
+            ORDER BY "createdAt"
+            FOR UPDATE 
+            SKIP LOCKED 
+            LIMIT 10
+          )
+          RETURNING *
+        `)
 
         for (const event of events) {
             // 🧠 1. Extract parent context จาก user-service ที่ inject มากับ headers
