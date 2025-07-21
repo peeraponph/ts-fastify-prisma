@@ -22,5 +22,6 @@ model Outbox {
   error     String?
 
   @@index([status, createdAt])
+   @@map("Outbox") 
 }
 
