@@ -1,15 +1,14 @@
 // services/user-service/src/presentation/handlers/auth.handler.ts
+
 import { FastifyRequest, FastifyReply } from 'fastify'
 import jwt from 'jsonwebtoken'
 import { UserService } from '../../application/services/user.service'
 import { userRepository } from '../../infrastructure/repositories/user.repository.prisma'
 import { LoginInput } from '../../types/auth.types'
-import { UserLogProducerService } from '../../application/events/log.producer'
 import { comparePassword } from '../../shared/utils/password'
 import { validateEmail } from '../../shared/utils/validation'
 
-const logProducer = new UserLogProducerService()
-const userService = new UserService(userRepository, logProducer)
+const userService = new UserService(userRepository)
 
 export const loginHandler = async (
     request: FastifyRequest<{ Body: LoginInput }>,
@@ -56,13 +55,13 @@ export const loginHandler = async (
             })
         }
 
-        // 4. ตรวจสอบ JWT_SECRET
+        // 4. verify JWT secret
         if (!process.env.JWT_SECRET) {
             request.log.error('JWT_SECRET is not configured')
             throw new Error('Server configuration error')
         }
 
-        // 5. สร้าง JWT Token
+        // 5. generate access token
         const payload = {
             id: user.id,
             email: user.email,
@@ -73,7 +72,7 @@ export const loginHandler = async (
             expiresIn: '1h'
         })
 
-        // 6. ตอบกลับด้วย token
+        // 6. return access token
         return reply.send({
             accessToken: token,
             expiresIn: 3600, // 1 ชั่วโมงในหน่วยวินาที
