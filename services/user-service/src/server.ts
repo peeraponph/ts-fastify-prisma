@@ -1,4 +1,5 @@
 // services/user-service/src/server.ts
+
 import * as dotenv from 'dotenv'
 dotenv.config()
 
@@ -126,4 +127,16 @@ async function startServer() {
     }
 }
 
-startServer()
+// when imported, do not start server
+if (require.main === module) {
+    startServer()
+}
+
+// Fastify instance for testing
+export async function buildApp() {
+    await setupOpenTelemetry()
+    await server.register(metricsPlugin)
+    await connectProducer()
+    await setupServer()
+    return server
+}
