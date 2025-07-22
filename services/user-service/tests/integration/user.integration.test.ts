@@ -5,6 +5,7 @@ import request from 'supertest'
 import { setupTestServer } from '../../setup/setupTestServer'
 import { resetTestDB } from '../../setup/setupTestDB'
 import { PrismaClient } from '../../src/generated/prisma'
+import { group } from 'console'
 
 const prisma = new PrismaClient()
 
@@ -17,10 +18,17 @@ describe('POST /users (Integration)', () => {
     })
 
     it('should create user and write to outbox', async () => {
-        const payload = { name: 'Alice', email: 'alice@example.com' }
+        const testId = Math.round(Math.random() * 1e5)
+        const payload = {
+            name: `user-test-id-${testId}`,
+            email: `user-test-id-${testId}@example.com`,
+            password: `password-${testId}`,
+            group: 'users',
+            role: 'USER'
+        }
 
         const res = await request(app.server)
-            .post('/users')
+            .post('/api/v1/users')
             .send(payload)
 
         expect(res.status).toBe(201)
@@ -30,11 +38,11 @@ describe('POST /users (Integration)', () => {
         expect(user).not.toBeNull()
 
         const outbox = await prisma.outbox.findFirst({
-            where: { 
-                key: user!.id.toString() 
+            where: {
+                key: user!.id.toString()
             }
         })
         expect(outbox).not.toBeNull()
-        expect(outbox!.eventType).toBe('USER_CREATED')
+        expect(outbox!.eventType).toBe('user.created')
     })
 })
