@@ -58,8 +58,8 @@ export async function processOutboxEvents() {
                             where: { id: event.id },
                             data: { status: 'SENT', sentAt: new Date() },
                         })
-
                         span.setStatus({ code: SpanStatusCode.OK })
+                        
                     } catch (err) {
                         outboxKafkaErrorCounter.labels(event.eventType).inc()
                         span.recordException(err as any)
