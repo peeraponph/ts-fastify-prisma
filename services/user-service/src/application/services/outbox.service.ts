@@ -1,9 +1,9 @@
 // user-service/src/application/services/outbox.service.ts
 
-import { PrismaClient } from '../../generated/prisma'
+import { PrismaClient } from '../../generated/outbox-prisma'
 import { trace, context } from '@opentelemetry/api'
 
-const prisma = new PrismaClient()
+const outboxPrisma = new PrismaClient()
 const tracer = trace.getTracer('user-service')
 
 export async function writeOutboxEvent(params: {
@@ -17,7 +17,7 @@ export async function writeOutboxEvent(params: {
 
     return await context.with(trace.setSpan(context.active(), span), async () => {
         try {
-            await prisma.outbox.create({
+            await outboxPrisma.outbox.create({
                 data: {
                     topic: params.topic,
                     key: params.key,

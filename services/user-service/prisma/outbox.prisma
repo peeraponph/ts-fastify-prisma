@@ -1,0 +1,25 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/outbox-prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL_OUTBOX")
+}
+
+model Outbox {
+  id        String   @id @default(uuid())
+  topic     String
+  key       String
+  eventType String
+  payload   Json
+  headers   Json?
+  status    String   @default("PENDING")
+  createdAt DateTime @default(now())
+  sentAt    DateTime?
+  error     String?
+
+  @@index([status, createdAt])
+  @@map("Outbox")
+}

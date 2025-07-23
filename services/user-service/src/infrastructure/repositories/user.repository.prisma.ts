@@ -1,12 +1,12 @@
 // services/user-service/src/infrastructure/repositories/user.repository.prisma.ts
 import { Prisma, User as PrismaUser } from '../../generated/prisma'
-import { prisma } from '../prisma/prisma'
+import { userPrisma } from '../prisma/userClient'
 import { UserRepository, ListUsersOptions, PaginatedResult } from '../../application/ports/user.repository'
 import { redis } from '../cache/redis'
 
 export const userRepository: UserRepository = {
     async createUser(data: Prisma.UserCreateInput): Promise<PrismaUser> {
-        const user = await prisma.user.create({ data })
+        const user = await userPrisma.user.create({ data })
 
         // Cache the new user
         await redis.setex(`user:${user.id}`, 300, JSON.stringify(user))
@@ -30,7 +30,7 @@ export const userRepository: UserRepository = {
             return JSON.parse(cached)
         }
 
-        const user = await prisma.user.findUnique({ where: { email } })
+        const user = await userPrisma.user.findUnique({ where: { email } })
 
         if (user) {
             await redis.setex(cacheKey, 300, JSON.stringify(user))
@@ -47,7 +47,7 @@ export const userRepository: UserRepository = {
             return JSON.parse(cached)
         }
 
-        const user = await prisma.user.findUnique({ where: { id } })
+        const user = await userPrisma.user.findUnique({ where: { id } })
 
         if (user) {
             await redis.setex(cacheKey, 300, JSON.stringify(user))
@@ -57,7 +57,7 @@ export const userRepository: UserRepository = {
     },
 
     async update(id: number, data: Prisma.UserUpdateInput): Promise<PrismaUser> {
-        const user = await prisma.user.update({ where: { id }, data })
+        const user = await userPrisma.user.update({ where: { id }, data })
 
         // Update cache
         await redis.setex(`user:${id}`, 300, JSON.stringify(user))
@@ -76,12 +76,12 @@ export const userRepository: UserRepository = {
     },
 
     async delete(id: number): Promise<PrismaUser> {
-        const user = await prisma.user.findUnique({ where: { id } })
+        const user = await userPrisma.user.findUnique({ where: { id } })
         if (!user) {
             throw new Error('User not found')
         }
 
-        await prisma.user.delete({ where: { id } })
+        await userPrisma.user.delete({ where: { id } })
 
         // Remove from cache
         await redis.del(`user:${id}`)
@@ -122,7 +122,7 @@ export const userRepository: UserRepository = {
         }
 
         const [users, total] = await Promise.all([
-            prisma.user.findMany({
+            userPrisma.user.findMany({
                 where,
                 skip,
                 take: limit,
@@ -137,7 +137,7 @@ export const userRepository: UserRepository = {
                     // Exclude password from response
                 }
             }),
-            prisma.user.count({ where })
+            userPrisma.user.count({ where })
         ])
 
         const result: PaginatedResult<PrismaUser> = {

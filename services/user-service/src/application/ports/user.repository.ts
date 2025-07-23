@@ -26,3 +26,4 @@ export interface UserRepository {
     update(id: number, data: Prisma.UserUpdateInput): Promise<PrismaUser>
     delete(id: number): Promise<PrismaUser>
 }
+

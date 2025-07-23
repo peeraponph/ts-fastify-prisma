@@ -9,9 +9,12 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "dev": "npx ts-node src/server.ts",
-    "prisma:generate": "prisma generate",
-    "prisma:migrate": "prisma migrate dev",
-    "prisma:studio": "prisma studio"
+    "db:push": "npx prisma db push",
+    "db:generate": "npx prisma generate",
+    "db:migrate": "npx prisma migrate dev",
+    "db:push:test": "env-cmd -f .env.test prisma db push",
+    "db:migrate:test": "env-cmd -f .env.test prisma migrate deploy",
+    "db:generate:test": "env-cmd -f .env.test prisma generate"
   },
   "keywords": [],
   "author": "",
@@ -51,6 +54,7 @@
     "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^24.0.10",
     "@types/supertest": "^6.0.3",
+    "env-cmd": "^10.1.0",
     "jest": "^29.7.0",
     "prisma": "^6.10.0",
     "supertest": "^7.1.3",
