@@ -1,55 +1,58 @@
-// services/user-service/src/server.ts
+// src/server.ts
 
 import * as dotenv from 'dotenv'
 dotenv.config()
 
-import { setupOpenTelemetry } from './infrastructure/tracing/otel'; 
-import metricsPlugin from './infrastructure/metrics/metrics.plugin'
-import Fastify from 'fastify'
+import Fastify, { FastifyInstance } from 'fastify'
 import fastifySwagger from '@fastify/swagger'
 import fastifySwaggerUi from '@fastify/swagger-ui'
+import metricsPlugin from './infrastructure/metrics/metrics.plugin'
 import authPlugin from './infrastructure/auth/auth.plugin'
-import { connectProducer } from './infrastructure/kafka/kafka'
 import userRoutes from './presentation/routes/user.route'
 import authRoutes from './presentation/routes/auth.route'
 import healthRoute from './presentation/routes/health.route'
+import { setupOpenTelemetry } from './infrastructure/tracing/otel'
+import { connectProducer } from './infrastructure/kafka/kafka'
 
-
-const server = Fastify({
-    logger: {
-        transport: {
-            target: 'pino-pretty',
-            options: {
-                colorize: true,
-                translateTime: 'HH:MM:ss dd-mm-yyyy',
-                ignore: 'pid,hostname'
+// Create and configure the Fastify server
+export function createServer(): FastifyInstance {
+    const server = Fastify({
+        logger: {
+            transport: {
+                target: 'pino-pretty',
+                options: {
+                    colorize: true,
+                    translateTime: 'HH:MM:ss dd-mm-yyyy',
+                    ignore: 'pid,hostname'
+                }
             }
-        }
-    },
-    forceCloseConnections: true,
-    connectionTimeout: 1000,
-})
-
-// 💥 Global error handler
-server.setErrorHandler(async (error, request, reply) => {
-    request.log.error(error)
-    if (error.validation) {
-        return reply.status(400).send({
-            statusCode: 400,
-            error: 'Bad Request',
-            message: 'Validation failed',
-            details: error.validation,
-        })
-    }
-    return reply.status(500).send({
-        statusCode: 500,
-        error: 'Internal Server Error',
-        message: 'Unexpected error occurred',
+        },
+        forceCloseConnections: true,
+        connectionTimeout: 1000
     })
-})
 
-// 📘 Swagger setup
-async function setupSwagger() {
+    // Global error handler
+    server.setErrorHandler(async (error, request, reply) => {
+        request.log.error(error)
+        if (error.validation) {
+            return reply.status(400).send({
+                statusCode: 400,
+                error: 'Bad Request',
+                message: 'Validation failed',
+                details: error.validation,
+            })
+        }
+        return reply.status(500).send({
+            statusCode: 500,
+            error: 'Internal Server Error',
+            message: 'Unexpected error occurred',
+        })
+    })
+
+    return server
+}
+
+async function setupSwagger(server: FastifyInstance) {
     await server.register(fastifySwagger, {
         swagger: {
             info: {
@@ -86,57 +89,43 @@ async function setupSwagger() {
     server.get('/', async (req, reply) => reply.redirect('/docs'))
 }
 
-// 🧩 Register plugins and routes
-async function setupServer() {
+async function setupServer(server: FastifyInstance) {
     await server.register(authPlugin)
-    await setupSwagger()
+    await setupSwagger(server)
     await server.register(userRoutes, { prefix: '/api/v1/users' })
     await server.register(authRoutes, { prefix: '/auth' })
     await server.register(healthRoute, { prefix: '/api/v1' })
 }
 
-// ⏹️ Graceful shutdown
-async function fastShutdown() {
-    console.log('\n⚠️  Force shutting down...')
-    await server.close().catch(() => { })
-    process.exit(0)
-}
-
-process.on('SIGINT', fastShutdown)
-process.on('SIGTERM', fastShutdown)
-
-// 🚀 Start server
+// Start the server only if this file is run directly
 async function startServer() {
     try {
-
-        await setupOpenTelemetry();
-
+        const server = createServer()
+        await setupOpenTelemetry()
         await server.register(metricsPlugin)
-
         await connectProducer()
-        await setupServer()
-
+        await setupServer(server)
         await server.ready()
-
         await server.listen({ port: 5000, host: '0.0.0.0' })
-        server.log.info('Swagger docs available at http://localhost:5000/docs')
 
+        server.log.info('Swagger docs available at http://localhost:5000/docs')
     } catch (err) {
-        server.log.error(err)
+        console.error(err)
         process.exit(1)
     }
 }
 
-// when imported, do not start server
 if (require.main === module) {
     startServer()
 }
 
-// Fastify instance for testing
-export async function buildApp() {
+// Export the createServer function for testing or other purposes
+export async function buildApp(): Promise<FastifyInstance> {
+    const app = createServer()
     await setupOpenTelemetry()
-    await server.register(metricsPlugin)
+    await app.register(metricsPlugin)
     await connectProducer()
-    await setupServer()
-    return server
+    await setupServer(app)
+    await app.ready()
+    return app
 }

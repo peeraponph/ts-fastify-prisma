@@ -1,10 +1,8 @@
 // services/user-service/src/application/services/user.service.ts
 import { UserRepository, ListUsersOptions, PaginatedResult } from '../ports/user.repository'
-import { LogProducerPort } from '../ports/log.producer'
 import { hashPassword } from '../../shared/utils/password'
 import { User } from '../../domain/user.entity'
 import { writeOutboxEvent } from './outbox.service'
-import { GetTimestampNow } from '../../shared/utils/time'
 import { CreateUserInput, UpdateUserInput } from '../../types/user.types'
 import { KafkaUserTopic } from '../../infrastructure/kafka/topic'
 import { context, trace, propagation } from '@opentelemetry/api'

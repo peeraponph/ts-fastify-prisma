@@ -6,16 +6,19 @@
         "dev": "ts-node src/server.ts",
         "build": "tsc",
         "start": "node dist/server.js",
-        "prisma:generate": "prisma generate",
-        "prisma:migrate": "prisma migrate dev",
-        "prisma:studio": "prisma studio"
+        "db:push": "prisma db push",
+        "db:generate": "prisma generate",
+        "db:migrate": "prisma migrate dev",
+        "db:push:test": "env-cmd -f .env.test prisma db push",
+        "db:migrate:test": "env-cmd -f .env.test prisma migrate deploy",
+        "db:generate:test": "env-cmd -f .env.test prisma generate"
     },
     "dependencies": {
         "@opentelemetry/api": "1.8.0",
-        "@opentelemetry/sdk-node": "0.50.0",
         "@opentelemetry/exporter-trace-otlp-http": "0.50.0",
         "@opentelemetry/instrumentation-kafkajs": "^0.11.0",
         "@opentelemetry/instrumentation-redis": "0.50.0",
+        "@opentelemetry/sdk-node": "0.50.0",
         "@prisma/client": "^5.0.0",
         "fastify": "^4.25.2",
         "kafkajs": "^2.2.4",
@@ -23,8 +26,11 @@
     },
     "devDependencies": {
         "@types/node": "^20.0.0",
+        "env-cmd": "^10.1.0",
         "prisma": "^5.0.0",
         "ts-node": "^10.9.1",
-        "typescript": "^5.4.0"
+        "tsx": "^4.20.3",
+        "typescript": "^5.8.3",
+        "vitest": "^3.2.4"
     }
 }
