@@ -1,6 +1,5 @@
 // services/user-service/vitest.config.ts
 
-// import '../setup/setupTestEnv'
 import { defineConfig } from 'vitest/config'
 
 export default defineConfig({

@@ -1,15 +1,25 @@
-// service/outbox-service/src/infrastructure/kafka/kafka.ts
+// services/outbox-service/src/infrastructure/kafka/kafka.ts
 
-import { Kafka } from 'kafkajs'
+import { Kafka, Producer } from 'kafkajs'
 
 export const kafka = new Kafka({
     clientId: 'outbox-service',
-    brokers: ['localhost:9092'], // หรือ ENV เช่น process.env.KAFKA_BROKERS
+    brokers: [process.env.KAFKA_BROKER || 'localhost:9092'],
 })
 
-export const producer = kafka.producer()
+const defaultProducer = kafka.producer()
+let kafkaProducer: Producer | null = null
 
 export async function connectProducer() {
-    await producer.connect()
+    await defaultProducer.connect()
     console.log('✅ Kafka Producer connected (outbox-service)')
+}
+
+// ✅ Use default unless explicitly mocked
+export function getKafkaProducer(): Producer {
+    return kafkaProducer ?? defaultProducer
+}
+
+export function setKafkaProducer(mock: Producer) {
+    kafkaProducer = mock
 }

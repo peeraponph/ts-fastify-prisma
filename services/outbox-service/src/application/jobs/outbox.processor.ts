@@ -1,6 +1,6 @@
 // services/outbox-service/src/application/jobs/outbox.processor.ts
 import { PrismaClient } from '../../generated/prisma'
-import { producer } from '../../infrastructure/kafka/kafka'
+import { getKafkaProducer } from '../../infrastructure/kafka/kafka'
 import { trace, context, SpanStatusCode, propagation } from '@opentelemetry/api'
 import {
     outboxKafkaSuccessCounter,
@@ -13,6 +13,9 @@ const tracer = trace.getTracer('outbox-service')
 
 export async function processOutboxEvents() {
     try {
+        const producer = getKafkaProducer()
+        console.log('📦 Using producer:', producer)
+        
         await prisma.$transaction(async (tx) => {
             const events = await tx.$queryRawUnsafe<any[]>(`
               UPDATE "Outbox"
